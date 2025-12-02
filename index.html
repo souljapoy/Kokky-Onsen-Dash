@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Camp Pac-Man — Retro Quest</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="container">
+    <header>
+      <h1>Camp Pac-Man — Retro Quest</h1>
+      <p class="subtitle">Play one round. Submit your score. ALTs approve for camp points.</p>
+    </header>
+
+    <main>
+      <section id="menu">
+        <label>
+          Player name:
+          <input id="playerName" placeholder="e.g. Yamada" maxlength="20" />
+        </label>
+        <label>
+          Team:
+          <select id="teamSelect">
+            <option value="Green">Green</option>
+            <option value="Red">Red</option>
+            <option value="Blue">Blue</option>
+            <option value="White">White</option>
+          </select>
+        </label>
+        <label>
+          Round length (seconds):
+          <input id="roundLength" type="number" value="60" min="10" max="180" />
+        </label>
+        <div class="menu-row">
+          <button id="btnPlay">Play</button>
+          <button id="btnLeaderboard">Leaderboard</button>
+        </div>
+        <p class="meta small">Tip: use touch controls on phones (arrows appear during play).</p>
+      </section>
+
+      <section id="gameArea" class="hidden">
+        <div id="hud">
+          <div>Score: <span id="score">0</span></div>
+          <div>Time: <span id="time">60</span></div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="touchControls" class="hidden">
+          <button id="tLeft" class="tbtn">◀</button>
+          <div class="tcol">
+            <button id="tUp" class="tbtn">▲</button>
+            <button id="tDown" class="tbtn">▼</button>
+          </div>
+          <button id="tRight" class="tbtn">▶</button>
+          <button id="tAction" class="tbtn action">●</button>
+        </div>
+
+        <div class="game-controls">
+          <button id="btnPause">Pause</button>
+          <button id="btnQuit">Quit</button>
+        </div>
+      </section>
+
+      <section id="endScreen" class="hidden">
+        <h2>Round Over</h2>
+        <p>Your score: <strong id="finalScore">0</strong></p>
+        <label>
+          Submit score to leaderboard?
+          <input type="checkbox" id="confirmSubmit" checked />
+        </label>
+        <div class="menu-row">
+          <button id="btnSubmit">Submit</button>
+          <button id="btnPlayAgain">Play again</button>
+          <button id="btnBackMenu">Back to Menu</button>
+        </div>
+      </section>
+
+      <section id="leaderboard" class="hidden">
+        <h2>Leaderboard — Top Players</h2>
+        <div id="topList">Loading...</div>
+
+        <h3>Team Totals</h3>
+        <div id="teamTotals" class="totals">Loading totals...</div>
+
+        <div style="margin-top:12px">
+          <button id="btnBackFromLB">Back</button>
+          <button id="btnAdminOpen">Admin Sign In</button>
+        </div>
+      </section>
+
+      <section id="adminPanel" class="hidden">
+        <h2>Admin Panel</h2>
+        <div id="authArea">
+          <label>Email:
+            <input id="adminEmail" type="email" placeholder="admin@example.com" />
+          </label>
+          <label>Password:
+            <input id="adminPass" type="password" />
+          </label>
+          <div class="menu-row">
+            <button id="btnAdminSignIn">Sign In</button>
+            <button id="btnAdminSignOut" class="hidden">Sign Out</button>
+          </div>
+          <p class="meta">Use the admin account you created in Firebase console.</p>
+        </div>
+
+        <div id="adminActions" class="hidden">
+          <p class="meta">Approve valid scores or remove suspicious ones.</p>
+          <div id="adminList">Loading...</div>
+          <div style="margin-top:12px">
+            <button id="btnCloseAdmin">Close Admin</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <small>Made for English Camp 2026 — Retro Quest</small>
+    </footer>
+  </div>
+
+  <!-- Firebase + game logic -->
+  <script type="module" src="game.js"></script>
+</body>
+</html>

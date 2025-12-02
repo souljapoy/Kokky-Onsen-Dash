@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Pac-Man Admin Panel</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>Admin Panel</h1>
+
+<div id="loginSection">
+    <h2>Admin Login</h2>
+    <input id="email" type="email" placeholder="Email"><br>
+    <input id="password" type="password" placeholder="Password"><br>
+    <button id="loginBtn">Login</button>
+</div>
+
+<div id="adminSection" style="display:none;">
+    <h2>Pending Approvals</h2>
+    <div id="pendingList"></div>
+    <button id="logoutBtn">Logout</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { firebaseConfig } from "./game.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const loginSection = document.getElementById("loginSection");
+    const adminSection = document.getElementById("adminSection");
+    const pendingList = document.getElementById("pendingList");
+
+    document.getElementById("loginBtn").onclick = async () => {
+        const email = document.getElementById("email").value.trim();
+        const pw = document.getElementById("password").value.trim();
+        try {
+            await signInWithEmailAndPassword(auth, email, pw);
+            loginSection.style.display = "none";
+            adminSection.style.display = "block";
+        } catch (e) {
+            alert("Login failed");
+        }
+    };
+
+    document.getElementById("logoutBtn").onclick = async () => {
+        await signOut(auth);
+        adminSection.style.display = "none";
+        loginSection.style.display = "block";
+    };
+
+    const scoreRef = ref(db, "pacman-scores");
+
+    onValue(scoreRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const pending = Object.entries(data).filter(([id, item]) => !item.approved);
+
+        pendingList.innerHTML = "";
+        if (pending.length === 0) {
+            pendingList.innerHTML = "<p>No pending scores.</p>";
+        }
+
+        pending.forEach(([id, item]) => {
+            const div = document.createElement("div");
+            div.className = "pendingItem";
+            div.innerHTML = `
+                <p><b>${item.name}</b> — ${item.score} points (${item.team})</p>
+                <button>Approve</button>
+            `;
+            div.querySelector("button").onclick = () => {
+                update(ref(db, "pacman-scores/" + id), { approved: true });
+            };
+            pendingList.appendChild(div);
+        });
+    });
+</script>
+
+</body>
+</html>

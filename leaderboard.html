@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Pac-Man Leaderboard</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <h1>Pac-Man Leaderboard</h1>
+
+    <h2>Top Scores</h2>
+    <table id="scoreTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Team</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody id="scoreBody"></tbody>
+    </table>
+
+    <h2>Team Totals</h2>
+    <div id="teamTotals"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        import { firebaseConfig } from "./game.js";
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const scoreRef = ref(db, "pacman-scores");
+
+        onValue(scoreRef, (snapshot) => {
+            const data = snapshot.val() || {};
+
+            let approvedScores = Object.values(data)
+                .filter(x => x.approved === true)
+                .sort((a, b) => b.score - a.score);
+
+            const body = document.getElementById("scoreBody");
+            body.innerHTML = "";
+
+            approvedScores.forEach(item => {
+                const row = `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.team}</td>
+                        <td>${item.score}</td>
+                    </tr>`;
+                body.innerHTML += row;
+            });
+
+            const totals = { Green: 0, Red: 0, Blue: 0, White: 0 };
+            approvedScores.forEach(item => {
+                if (totals[item.team] !== undefined) {
+                    totals[item.team] += item.score;
+                }
+            });
+
+            document.getElementById("teamTotals").innerHTML = `
+                <p>Green: ${totals.Green}</p>
+                <p>Red: ${totals.Red}</p>
+                <p>Blue: ${totals.Blue}</p>
+                <p>White: ${totals.White}</p>
+            `;
+        });
+    </script>
+</body>
+</html>
