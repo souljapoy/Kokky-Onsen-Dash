@@ -58,15 +58,21 @@
       background:#181a30;
       text-align:left;
     }
+    th.scoreHead{
+      text-align:right;
+    }
+    td.rankNum{
+      text-align:right;
+    }
+    td.score{
+      text-align:right;
+      font-weight:600;
+    }
     tr:nth-child(even){
       background:#11132a;
     }
     tr:nth-child(odd){
       background:#0d0f22;
-    }
-    td.score{
-      text-align:right;
-      font-weight:600;
     }
     .backBtn{
       margin-top:10px;
@@ -107,16 +113,15 @@
   <div id="wrap">
     <h1>Kokky's Onsen Dash – Scoreboard</h1>
     <p class="note">
-      Local scoreboard on <strong>this device only</strong>.<br/>
-      Your scores are also saved to an overall leaderboard online.<br/><br/>
-      Player ID = TeamColor-Number (ex: W-18, R-A)
+      Showing scores recorded on <strong>this device</strong> only.<br/>
+      Your scores are also saved to an overall scoreboard online.
     </p>
     <table id="lbTable">
       <thead>
         <tr>
-          <th>#</th>
+          <th class="scoreHead">#</th>
           <th>Player</th>
-          <th class="score">Score</th>
+          <th class="scoreHead">Score</th>
           <th>Best Rank</th>
         </tr>
       </thead>
@@ -171,6 +176,8 @@
         const bestRankTd = document.createElement("td");
 
         rankTd.textContent = idx+1;
+        rankTd.className = "rankNum";
+
         playerTd.textContent = (e.id === "0" ? "Guest" : (e.id || "-"));
         scoreTd.textContent = e.score;
         scoreTd.className = "score";
