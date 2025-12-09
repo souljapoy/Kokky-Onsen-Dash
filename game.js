@@ -1,4 +1,4 @@
-// Kokky's Onsen Dash – Flappy-style with ranks, carrot waves, Kokky sprite, team IDs, best rank in scoreboard
+// Kokky's Onsen Dash – polished version: night onsen, wooden pillars, fog steam, carrot waves, scoreboard ranks
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -90,7 +90,7 @@ updateBestFromLeaderboard();
 initStars();
 initSteamWisps();
 
-// Controls – start on first tap / space
+// Controls
 window.addEventListener("keydown", e=>{
   if(e.code === "Space"){
     if(!running){
@@ -282,19 +282,20 @@ function initStars(){
     stars.push({
       x: Math.random()*W,
       y: Math.random()*H*0.5,
-      phase: Math.random()*Math.PI*2
+      phase: Math.random()*Math.PI*2,
+      warm: Math.random() < 0.3 // 30% yellowish
     });
   }
 }
 
 function initSteamWisps(){
   steamWisps = [];
-  for(let i=0;i<15;i++){
+  for(let i=0;i<18;i++){
     steamWisps.push({
       x: Math.random()*W,
       y: H - 40 - Math.random()*80,
-      speedY: 0.3 + Math.random()*0.3,
-      alpha: 0.3 + Math.random()*0.2
+      speedY: 0.25 + Math.random()*0.25,
+      alpha: 0.25 + Math.random()*0.2
     });
   }
 }
@@ -328,12 +329,12 @@ function hop() {
   if(!running) return;
   player.vy = hopPower;
 
-  // add hop steam puff
+  // add hop steam puff (no more circles, soft ellipse fog)
   hopPuffs.push({
     x: player.x,
     y: player.y + player.r,
     radius: 10,
-    alpha: 0.7
+    alpha: 0.5
   });
 }
 
@@ -354,44 +355,44 @@ function addObstacle(){
   });
 }
 
-// Carrot patterns: 0=U,1=rise,2=fall,3=flat,4=wavy
+// Carrot wave: 10 carrots, patterns rotate; normal = 1pt, golden = 5pts
 function spawnCarrotWave() {
   carrotWaveCount++;
-  const hasGolden = (carrotWaveCount % 3 === 0);
-  const goldenIndex = hasGolden ? Math.floor(Math.random()*5) : -1;
+  const hasGolden = true; // always one golden
+  const goldenIndex = Math.floor(Math.random()*10);
 
   const pattern = carrotPatternIndex % 5;
   carrotPatternIndex++;
 
-  const baseX = W + 80;
-  const stepX = 32;
+  const baseX = W + 60;
+  const stepX = 24; // tighter spacing
   const baseY = H/2;
 
-  for(let i=0;i<5;i++){
+  for(let i=0;i<10;i++){
     let offsetY = 0;
     if(pattern === 0){
-      // U-shape
-      const center = 2;
+      // U-shape (wider)
+      const center = 4.5;
       const d = i - center;
-      offsetY = d*d * 8; // 0,8,32,8,0
+      offsetY = d*d * 3; 
     }else if(pattern === 1){
       // rising diagonal ↗
-      offsetY = -20 + i*12;
+      offsetY = -30 + i*6;
     }else if(pattern === 2){
       // falling diagonal ↘
-      offsetY = 20 - i*12;
+      offsetY = 30 - i*6;
     }else if(pattern === 3){
-      // flat line
+      // flat mid-line
       offsetY = -10;
     }else if(pattern === 4){
-      // wavy
-      offsetY = Math.sin(i * 1.2) * 30;
+      // sine wave
+      offsetY = Math.sin(i * 0.8) * 25;
     }
 
     carrots.push({
       x: baseX + i*stepX,
       y: baseY + offsetY,
-      r: 10,
+      r: 9,
       golden: (i === goldenIndex)
     });
   }
@@ -474,7 +475,7 @@ function checkRankUp() {
   const nextRank = RANKS[nextRankIndex];
   if(obstaclesPassed >= nextRank.threshold){
     rankPopupTitle = nextRank.title;
-    rankPopupTimer = 150; // longer popup
+    rankPopupTimer = 150; // longer
     nextRankIndex++;
   }
 }
@@ -494,14 +495,15 @@ function updateGame(){
 
   const speed = obstaclesPassed >= 60 ? boostedSpeed : baseSpeed;
 
-  // Obstacle spawn – allow spawn unless carrots mostly on right
+  // Spawn obstacles – allow spawn unless carrots still too far right
   let canSpawnObstacle = true;
   if(carrots.length > 0){
     let maxCarrotX = -Infinity;
     for(const c of carrots){
       if(c.x > maxCarrotX) maxCarrotX = c.x;
     }
-    if(maxCarrotX > W*0.7){ // smaller gap vs before (0.7 "distance")
+    // 0.7-ish spacing: allow spawn once carrots largely in left 70%
+    if(maxCarrotX > W*0.7){
       canSpawnObstacle = false;
     }
   }
@@ -548,7 +550,7 @@ function updateGame(){
   });
   carrots = carrots.filter(c=>{
     if(collideCarrot(c)){
-      score += c.golden ? 5 : 2;
+      score += c.golden ? 5 : 1;
       scoreEl.textContent = score;
       return false;
     }
@@ -559,15 +561,15 @@ function updateGame(){
   hopPuffs.forEach(p=>{
     p.y -= 0.8;
     p.radius += 0.5;
-    p.alpha -= 0.03;
+    p.alpha -= 0.025;
   });
   hopPuffs = hopPuffs.filter(p=>p.alpha > 0);
 
-  // background animation phases
+  // background animation
   lanternPhase += 0.02;
   steamWisps.forEach(w=>{
     w.y -= w.speedY;
-    if(w.y < H - 140) {
+    if(w.y < H - 150) {
       w.y = H - 40 - Math.random()*40;
       w.x = Math.random()*W;
     }
@@ -585,27 +587,24 @@ function draw(){
     shakeTimer--;
   }
 
-  // sky
-  ctx.fillStyle = "#050716";
-  ctx.fillRect(0,0,W,H);
-
+  // retro midnight sky
   const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0, "#050922");
-  grad.addColorStop(1, "#080c24");
+  grad.addColorStop(0, "#0a1633");
+  grad.addColorStop(1, "#02040b");
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,W,H);
 
-  // stars twinkle
+  // stars
   ctx.save();
   stars.forEach(s=>{
     const tw = 0.5 + 0.5*Math.sin(performance.now()/400 + s.phase);
-    ctx.globalAlpha = 0.3 + 0.5*tw;
-    ctx.fillStyle = "#e8f0ff";
+    ctx.globalAlpha = 0.25 + 0.5*tw;
+    ctx.fillStyle = s.warm ? "#f6e69c" : "#e8f0ff";
     ctx.fillRect(s.x, s.y, 2, 2);
   });
   ctx.restore();
 
-  // moon with warm color + slight texture
+  // moon
   ctx.save();
   const moonX = W - 80;
   const moonY = 80;
@@ -630,51 +629,42 @@ function draw(){
   ctx.fill();
   ctx.restore();
 
-  // snowy Nagano mountains
+  // smooth snowy Nagano mountains (M1)
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(0, H*0.55);
-  ctx.lineTo(W*0.15, H*0.4);
-  ctx.lineTo(W*0.3, H*0.55);
-  ctx.lineTo(W*0.5, H*0.35);
-  ctx.lineTo(W*0.7, H*0.55);
-  ctx.lineTo(W*0.85, H*0.42);
-  ctx.lineTo(W, H*0.55);
+  ctx.moveTo(0, H*0.58);
+  ctx.quadraticCurveTo(W*0.15, H*0.42, W*0.3, H*0.58);
+  ctx.quadraticCurveTo(W*0.5, H*0.38, W*0.7, H*0.58);
+  ctx.quadraticCurveTo(W*0.85, H*0.45, W, H*0.58);
   ctx.lineTo(W, H);
   ctx.lineTo(0, H);
   ctx.closePath();
-  ctx.fillStyle = "#0b1022";
+  ctx.fillStyle = "#090f24";
   ctx.fill();
 
-  // snow caps
-  ctx.beginPath();
-  ctx.moveTo(W*0.15, H*0.4);
-  ctx.lineTo(W*0.14, H*0.43);
-  ctx.lineTo(W*0.16, H*0.43);
-  ctx.closePath();
-  ctx.moveTo(W*0.5, H*0.35);
-  ctx.lineTo(W*0.49, H*0.38);
-  ctx.lineTo(W*0.51, H*0.38);
-  ctx.closePath();
-  ctx.moveTo(W*0.85, H*0.42);
-  ctx.lineTo(W*0.84, H*0.45);
-  ctx.lineTo(W*0.86, H*0.45);
-  ctx.closePath();
-  ctx.fillStyle = "#e5ecff";
-  ctx.fill();
+  // snow caps as soft band
+  const snowGrad = ctx.createLinearGradient(0, H*0.38, 0, H*0.58);
+  snowGrad.addColorStop(0, "rgba(229,236,255,0.7)");
+  snowGrad.addColorStop(1, "rgba(229,236,255,0)");
+  ctx.fillStyle = snowGrad;
+  ctx.fillRect(0, H*0.38, W, H*0.2);
   ctx.restore();
 
-  // runway-style lanterns
+  // lantern runway BEHIND obstacles
   ctx.save();
   const lanternY = H*0.7;
-  for(let x = -20; x < W+40; x += 50){
+  for(let x = -20; x < W+40; x += 100){ // fewer lanterns
     const phase = lanternPhase + x*0.05;
     const glow = 0.7 + 0.3*Math.sin(phase);
-    ctx.globalAlpha = 0.6 + 0.2*glow;
+    ctx.globalAlpha = 0.5 + 0.3*glow;
+
+    // lantern body (simple box shape)
     ctx.fillStyle = "#ffcf6b";
-    ctx.beginPath();
-    ctx.arc(x, lanternY, 4, 0, Math.PI*2);
-    ctx.fill();
+    ctx.fillRect(x-4, lanternY-7, 8, 12);
+    // top/bottom caps
+    ctx.fillStyle = "#b8762a";
+    ctx.fillRect(x-5, lanternY-8, 10, 2);
+    ctx.fillRect(x-5, lanternY+4, 10, 2);
   }
   ctx.restore();
 
@@ -687,57 +677,97 @@ function draw(){
   ctx.fillRect(0, H*0.75, W, H*0.25);
   ctx.restore();
 
-  // drifting steam wisps (foreground)
+  // drifting steam wisps (foreground environment steam, not circles)
   ctx.save();
   steamWisps.forEach(w=>{
     ctx.globalAlpha = w.alpha;
     ctx.fillStyle = "#f7f9ff";
     ctx.beginPath();
-    ctx.ellipse(w.x, w.y, 30, 10, 0, 0, Math.PI*2);
+    ctx.ellipse(w.x, w.y, 32, 12, 0, 0, Math.PI*2);
     ctx.fill();
   });
   ctx.restore();
 
-  // obstacles as steam pillars
+  // obstacles: dark brown wooden pillars with segments (W3)
   obstacles.forEach(o=>{
-    const steamColor = "rgba(255,255,255,0.25)";
+    const bottomHeight = H - (o.top + o.gap);
 
-    // gentle drift factor
-    const drift = Math.sin((performance.now()/800) + o.x*0.01)*2;
+    const woodColor = "#3a2615";
+    const woodHighlight = "#5c3a20";
 
     ctx.save();
-    ctx.translate(drift, 0);
 
     // top pillar
-    ctx.fillStyle = steamColor;
+    ctx.fillStyle = woodColor;
     ctx.beginPath();
     ctx.roundRect(o.x, 0, 40, o.top, 8);
     ctx.fill();
 
+    // segment lines
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 2;
+    for(let y=16; y<o.top; y+=18){
+      ctx.beginPath();
+      ctx.moveTo(o.x+4, y);
+      ctx.lineTo(o.x+36, y+2);
+      ctx.stroke();
+    }
+    // subtle vertical highlight
+    ctx.fillStyle = woodHighlight;
+    ctx.fillRect(o.x+10, 0, 4, o.top);
+
     // bottom pillar
-    const bottomHeight = H - (o.top + o.gap);
+    ctx.fillStyle = woodColor;
     ctx.beginPath();
-    ctx.roundRect(o.x, o.top + o.gap, 40, bottomHeight, 8);
+    ctx.roundRect(o.x, o.top+o.gap, 40, bottomHeight, 8);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    for(let y=o.top+o.gap+16; y< H; y+=18){
+      ctx.beginPath();
+      ctx.moveTo(o.x+4, y);
+      ctx.lineTo(o.x+36, y+2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = woodHighlight;
+    ctx.fillRect(o.x+10, o.top+o.gap, 4, bottomHeight);
+
+    ctx.restore();
+  });
+
+  // carrots (triangles), golden vs normal
+  carrots.forEach(c=>{
+    ctx.save();
+    ctx.translate(c.x, c.y);
+
+    // leaf
+    ctx.fillStyle = "#70c96a";
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(-4, -4);
+    ctx.lineTo(4, -4);
+    ctx.closePath();
+    ctx.fill();
+
+    // body
+    ctx.fillStyle = c.golden ? "#ffd94a" : "#ff9d3b";
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.lineTo(-5, 8);
+    ctx.lineTo(5, 8);
+    ctx.closePath();
     ctx.fill();
 
     ctx.restore();
   });
 
-  // carrots
-  carrots.forEach(c=>{
-    ctx.fillStyle = c.golden ? "#ffd94a" : "#ff9d3b";
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
-    ctx.fill();
-  });
-
-  // hop puffs
+  // hop puffs (soft fog puffs under feet)
   ctx.save();
   hopPuffs.forEach(p=>{
     ctx.globalAlpha = p.alpha;
     ctx.fillStyle = "#f5f7ff";
     ctx.beginPath();
-    ctx.ellipse(p.x, p.y, p.radius*1.2, p.radius*0.6, 0, 0, Math.PI*2);
+    ctx.ellipse(p.x, p.y, p.radius*1.4, p.radius*0.7, 0, 0, Math.PI*2);
     ctx.fill();
   });
   ctx.restore();
@@ -753,7 +783,7 @@ function draw(){
     ctx.fill();
   }
 
-  // rank popup (gold banner)
+  // rank popup
   if(rankPopupTimer > 0){
     const alpha = rankPopupTimer > 30 ? 1 : rankPopupTimer/30;
     ctx.globalAlpha = alpha;
@@ -782,7 +812,6 @@ function draw(){
     ctx.font = "16px 'Handjet'";
     ctx.fillText(rankPopupTitle, W/2, by+50);
 
-    // simple sparkles
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
     ctx.arc(bx+25, by+18, 2, 0, Math.PI*2);
