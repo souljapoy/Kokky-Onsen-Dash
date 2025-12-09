@@ -14,31 +14,27 @@
 </head>
 <body>
 
+  <!-- Row 1: Scoreboard (left) + Player (right) -->
   <div id="topBar">
-    <div id="scoreBox">
-      Score: <span id="score">0</span>
-      &nbsp;|&nbsp;
-      Best: <span id="best">0</span>
-    </div>
+    <a id="scoreboardLink" href="leaderboard.html">Scoreboard</a>
+
     <div id="playerBox">
       Player: <span id="playerIdLabel">Not set</span>
       <button id="changePlayerBtn">Change Player</button>
     </div>
   </div>
 
-  <div id="controlsBar">
-    <button id="startBtn">Play</button>
-    <a id="scoreboardLink" href="leaderboard.html" target="_blank">Scoreboard</a>
+  <!-- Row 2: Score | Best (center) -->
+  <div id="scoreRow">
+    Score: <span id="score">0</span>
+    &nbsp;|&nbsp;
+    Best: <span id="best">0</span>
   </div>
 
+  <!-- Hidden message row (for text but not visible) -->
   <div id="msg"></div>
 
   <canvas id="game" width="480" height="640"></canvas>
-
-  <p class="help">
-    Tap / Click / Space to hop through the onsen steam.<br />
-    Please select your team and number before playing.
-  </p>
 
   <!-- Player selection overlay -->
   <div id="playerOverlay" class="overlay hidden">
