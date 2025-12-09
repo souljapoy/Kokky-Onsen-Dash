@@ -1,259 +1,201 @@
-// Kokky's Onsen Dash – Team + Number Version
-// No typing. Local-only leaderboard. Player saved between sessions.
+// =======================
+// Kokky’s Onsen Dash 🍶🐰
+// Updated: Player sprite version
+// =======================
 
-const canvas = document.getElementById("game");
+// ---- Canvas Setup ----
+const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+canvas.width = 360;
+canvas.height = 640;
 
-const scoreEl = document.getElementById("score");
-const bestEl = document.getElementById("best");
-const startBtn = document.getElementById("startBtn");
-const msgEl = document.getElementById("msg");
+// ---- Game Settings ----
+let gravity = 0.5;
+let jumpPower = -8;
+let speed = 2;
+let score = 0;
+let bestScore = Number(localStorage.getItem("bestScore")) || 0;
+let gameOver = false;
 
-const playerOverlay = document.getElementById("playerOverlay");
-const playerIdLabel = document.getElementById("playerIdLabel");
-const changePlayerBtn = document.getElementById("changePlayerBtn");
+let obstacleGap = 150;
+let obstacleWidth = 50;
+let obstacleFreq = 120;
+let frameCount = 0;
 
-const numberList = document.getElementById("numberList");
-const selectedPreview = document.getElementById("selectedPreview");
-const confirmPlayerBtn = document.getElementById("confirmPlayerBtn");
-const cancelPlayerBtn = document.getElementById("cancelPlayerBtn");
+// ---- Carrot Waves ----
+let carrotWaveCounter = 0;
+let carrots = [];
+function spawnCarrotWave() {
+    carrotWaveCounter++;
+    let hasGolden = Math.random() < 0.33; // 1 in 3 waves
+    for (let i = 0; i < 5; i++) {
+        carrots.push({
+            x: canvas.width + i * 30,
+            y: Math.random() * (canvas.height - 200) + 50,
+            w: 20,
+            h: 20,
+            golden: hasGolden && i === Math.floor(Math.random() * 5)
+        });
+    }
+}
 
-const teamButtonsContainer = document.getElementById("teamButtons");
-
-const W = canvas.width;
-const H = canvas.height;
-
-// Final Team List Provided by You ✔
-const TEAM_CONFIG = {
-  W: { label: "White", numbers: [5,8,9,18,19,22,28,29,30,34], alts: ["A","B"] },
-  R: { label: "Red", numbers: [1,4,6,7,11,13,20,21,27,31,40], alts: ["A","B"] },
-  B: { label: "Blue", numbers: [2,3,15,16,17,25,32,33,38,41], alts: ["A","B"] },
-  G: { label: "Green", numbers: [10,12,14,23,24,26,35,36,37,39], alts: ["A","B"] },
-  Guest: { label: "Guest", numbers: [0], alts: [] }
+// ---- Player & Sprite ----
+let player = {
+    x: 80,
+    y: canvas.height / 2,
+    vy: 0,
+    width: 50,
+    height: 50
 };
 
-let running = false;
+// Load Kokky Sprite (your uploaded file)
+const kokkyImg = new Image();
+kokkyImg.src = "kokky.png";
+
+// ---- Obstacles ----
 let obstacles = [];
-let score = 0;
-
-let currentPlayerId = localStorage.getItem("onsen_player_id") || null;
-
-updatePlayerLabel();
-updateBestFromLeaderboard();
-
-let player = { x: 120, y: H/2, vy: 0, r: 22 };
-const gravity = 0.45;
-const hopPower = -8.8;
-const gapSize = 180;
-let spawnTimer = 0;
-
-// Controls
-window.addEventListener("keydown", (e)=>{
-  if(e.code === "Space"){
-    if(!running){ startGame(); }
-    else { hop(); }
-    e.preventDefault();
-  }
-});
-canvas.addEventListener("pointerdown", ()=>{
-  if(!running){ startGame(); }
-  else { hop(); }
-});
-startBtn.addEventListener("click", ()=>{ startGame(); });
-changePlayerBtn.addEventListener("click", ()=>{ openPlayerOverlay(); });
-cancelPlayerBtn.addEventListener("click", ()=>{ closePlayerOverlay(false); });
-
-let selectedTeamKey = null;
-let selectedNumberCode = null;
-
-// Overlay Logic
-function openPlayerOverlay(){
-  selectedTeamKey = null;
-  selectedNumberCode = null;
-  confirmPlayerBtn.disabled = true;
-  selectedPreview.textContent = "Player: -";
-  numberList.innerHTML = '<p class="hint">Select a team first.</p>';
-  document.querySelectorAll(".teamBtn").forEach(btn => btn.classList.remove("selected"));
-  playerOverlay.classList.remove("hidden");
-}
-function closePlayerOverlay(committed){
-  playerOverlay.classList.add("hidden");
-  if(!committed && !currentPlayerId){
-    setTimeout(openPlayerOverlay,10);
-  }
+function spawnObstacle() {
+    let topHeight = Math.random() * (canvas.height - obstacleGap - 100) + 50;
+    obstacles.push({
+        x: canvas.width,
+        top: topHeight,
+        bottom: topHeight + obstacleGap
+    });
 }
 
-teamButtonsContainer.addEventListener("click", e=>{
-  const btn = e.target.closest(".teamBtn");
-  if(!btn) return;
-  selectedTeamKey = btn.dataset.team;
-  selectedNumberCode = null;
-  confirmPlayerBtn.disabled = true;
-  selectedPreview.textContent = "Player: -";
-
-  document.querySelectorAll(".teamBtn").forEach(b=>b.classList.toggle("selected", b===btn));
-  buildNumberList(selectedTeamKey);
-});
-
-// Build number list after team selected
-function buildNumberList(teamKey){
-  const cfg = TEAM_CONFIG[teamKey];
-  numberList.innerHTML = "";
-  if(!cfg){
-    numberList.innerHTML = '<p class="hint">Unknown team.</p>';
-    return;
-  }
-
-  const codes = teamKey==="Guest"
-    ? ["0"]
-    : [...cfg.numbers.map(n=>String(n)), ...cfg.alts];
-
-  codes.forEach(code=>{
-    const btn=document.createElement("button");
-    btn.textContent = (code==="A"||code==="B") ? `${code} (ALT)` : code;
-    btn.addEventListener("click", ()=>selectNumber(code,btn));
-    numberList.appendChild(btn);
-  });
-}
-
-function selectNumber(code,btn){
-  selectedNumberCode = code;
-  document.querySelectorAll("#numberList button").forEach(b=>b.classList.remove("selected"));
-  btn.classList.add("selected");
-  updatePreview();
-}
-
-function updatePreview(){
-  if(!selectedTeamKey || !selectedNumberCode){
-    confirmPlayerBtn.disabled = true;
-    selectedPreview.textContent = "Player: -";
-    return;
-  }
-  let id = selectedTeamKey==="Guest" ? "0" : `${selectedTeamKey}-${selectedNumberCode}`;
-  selectedPreview.textContent = `Player: ${id}`;
-  confirmPlayerBtn.disabled = false;
-}
-
-confirmPlayerBtn.addEventListener("click", ()=>{
-  if(!selectedTeamKey || !selectedNumberCode) return;
-  currentPlayerId = selectedTeamKey==="Guest"
-    ? "0"
-    : `${selectedTeamKey}-${selectedNumberCode}`;
-  localStorage.setItem("onsen_player_id", currentPlayerId);
-  updatePlayerLabel();
-  updateBestFromLeaderboard();
-  closePlayerOverlay(true);
-});
-
-function updatePlayerLabel(){
-  playerIdLabel.textContent = currentPlayerId || "Not set";
-}
-
-// Leaderboard local
-function loadBoard(){
-  try{
-    return JSON.parse(localStorage.getItem("onsen_lb") || "[]");
-  }catch{
-    return [];
-  }
-}
-function saveBoard(list){
-  localStorage.setItem("onsen_lb", JSON.stringify(list));
-}
-function updateBestFromLeaderboard(){
-  if(!currentPlayerId){ bestEl.textContent = "0"; return; }
-  const entry = loadBoard().find(e=>e.id===currentPlayerId);
-  bestEl.textContent = entry ? entry.score : 0;
-}
-
-// Game Loop
-function startGame(){
-  if(!currentPlayerId){ openPlayerOverlay(); return; }
-  running = true;
-  score = 0;
-  scoreEl.textContent = score;
-  msgEl.textContent = "";
-  obstacles = [];
-  player.y = H/2;
-  player.vy = 0;
-  spawnTimer = 0;
-  loop();
-}
-function hop(){ if(running) player.vy = hopPower; }
-
-function addObstacle(){
-  const top = 40 + Math.random()*(H-260);
-  obstacles.push({x:W+40,top,gap:gapSize,passed:false});
-}
-function collide(o){
-  return (
-    player.x+player.r>o.x && player.x-player.r<o.x+40 &&
-    (player.y-player.r<o.top || player.y+player.r>o.top+o.gap)
-  );
-}
-
-function endGame(){
-  running = false;
-  const list = loadBoard();
-  let entry=list.find(e=>e.id===currentPlayerId);
-  const prev=entry?entry.score:0;
-
-  if(score>prev){
-    if(!entry){
-      list.push({id:currentPlayerId,score,ts:Date.now()});
-    }else{
-      entry.score=score;
-      entry.ts=Date.now();
+// ---- Controls ----
+document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+        if (gameOver) resetGame();
+        else playerJump();
     }
-    list.sort((a,b)=>b.score-a.score||a.ts-b.ts);
-    if(list.length>50) list.length=50;
-    saveBoard(list);
-    msgEl.textContent=`New Best! ${score}`;
-  }else msgEl.textContent=`Score: ${score}`;
+});
+canvas.addEventListener("mousedown", () => {
+    if (gameOver) resetGame();
+    else playerJump();
+});
 
-  updateBestFromLeaderboard();
+// ---- Player Actions ----
+function playerJump() {
+    player.vy = jumpPower;
 }
 
-function update(){
-  player.vy+=gravity;
-  player.y+=player.vy;
-  if(player.y+player.r>H){ endGame(); return; }
+function resetGame() {
+    score = 0;
+    speed = 2;
+    obstacles = [];
+    carrots = [];
+    frameCount = 0;
+    player.y = canvas.height / 2;
+    player.vy = 0;
+    gameOver = false;
+}
 
-  spawnTimer++;
-  if(spawnTimer>85){ spawnTimer=0; addObstacle(); }
-
-  obstacles.forEach(o=>{
-    o.x-=3;
-    if(!o.passed && o.x+40<player.x){
-      o.passed=true; score++;
-      scoreEl.textContent=score;
+// ---- Collision Check ----
+function checkCollision(obs) {
+    if (
+        player.x + player.width / 2 > obs.x &&
+        player.x - player.width / 2 < obs.x + obstacleWidth &&
+        (player.y - player.height / 2 < obs.top ||
+         player.y + player.height / 2 > obs.bottom)
+    ) {
+        return true;
     }
-  });
-  obstacles=obstacles.filter(o=>o.x>-60);
-  if(obstacles.some(collide)){ endGame(); return; }
+    return false;
 }
 
-function draw(){
-  ctx.fillStyle="#0b0f25";
-  ctx.fillRect(0,0,W,H);
-  ctx.fillStyle="rgba(240,240,255,.75)";
-  obstacles.forEach(o=>{
-    ctx.fillRect(o.x,0,40,o.top);
-    ctx.fillRect(o.x,o.top+o.gap,40,H-(o.top+o.gap));
-  });
-  ctx.fillStyle="#fff";
-  ctx.beginPath();
-  ctx.ellipse(player.x,player.y,player.r,player.r*1.1,0,0,Math.PI*2);
-  ctx.fill();
+// ---- Drawing Functions ----
+function drawPlayer() {
+    ctx.drawImage(kokkyImg, player.x - 25, player.y - 25, 50, 50);
 }
 
-function loop(){
-  if(!running) return;
-  update(); draw();
-  requestAnimationFrame(loop);
+function drawObstacles() {
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    obstacles.forEach((obs) => {
+        ctx.fillRect(obs.x, 0, obstacleWidth, obs.top);
+        ctx.fillRect(obs.x, obs.bottom, obstacleWidth, canvas.height - obs.bottom);
+    });
 }
 
-draw();
-if(!currentPlayerId) openPlayerOverlay();
+function drawCarrots() {
+    carrots.forEach(c => {
+        ctx.fillStyle = c.golden ? "yellow" : "orange";
+        ctx.fillRect(c.x, c.y, c.w, c.h);
+    });
+}
 
-// END — checksum e9
+function drawScoreboard() {
+    ctx.fillStyle = "white";
+    ctx.font = "24px PixFont";
+    ctx.fillText(`Score: ${score}`, 20, 40);
+    ctx.fillText(`Best: ${bestScore}`, 240, 40);
+}
+
+// ---- Update Loop ----
+function update() {
+    if (!gameOver) {
+        frameCount++;
+
+        // Difficulty scaling after 20 points
+        if (score >= 20) {
+            speed = 2 + (score * 0.02);
+        }
+
+        player.vy += gravity;
+        player.y += player.vy;
+
+        if (frameCount % obstacleFreq === 0) spawnObstacle();
+        if (frameCount % 300 === 0) spawnCarrotWave();
+
+        // Move & check obstacles
+        obstacles.forEach((obs, i) => {
+            obs.x -= speed;
+            if (obs.x + obstacleWidth < 0) {
+                obstacles.splice(i, 1);
+                score++;
+            }
+            if (checkCollision(obs)) triggerGameOver();
+        });
+
+        // Carrot movement & collection
+        carrots.forEach((c, i) => {
+            c.x -= speed;
+            if (c.x + c.w < 0) carrots.splice(i, 1);
+
+            if (
+                player.x < c.x + c.w &&
+                player.x + player.width > c.x &&
+                player.y < c.y + c.h &&
+                player.y + player.height > c.y
+            ) {
+                score += c.golden ? 5 : 2;
+                carrots.splice(i, 1);
+            }
+        });
+
+        // Ground and ceiling bounds
+        if (player.y < 0 || player.y > canvas.height) {
+            triggerGameOver();
+        }
+    }
+
+    // Draw
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawObstacles();
+    drawCarrots();
+    drawPlayer();
+    drawScoreboard();
+
+    requestAnimationFrame(update);
+}
+
+function triggerGameOver() {
+    gameOver = true;
+    if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem("bestScore", bestScore);
+    }
+}
+
+// ---- Start Game ----
+kokkyImg.onload = () => update();
