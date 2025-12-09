@@ -1,87 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Kokky Leaderboard</title>
-<style>
-body{
-  background:#050814;
-  color:#fff;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-  text-align:center;
-  margin:0;
-  padding:20px;
-}
-h1{
-  color:#ffd36b;
-  font-size:1.6rem;
-  margin-bottom:10px;
-}
-table{
-  width:100%;
-  max-width:400px;
-  margin:0 auto;
-  border-collapse:collapse;
-  font-size:1rem;
-}
-th,td{
-  border-bottom:1px solid #333;
-  padding:8px;
-}
-th{
-  background:#22253d;
-}
-.rank{
-  font-weight:bold;
-}
-.backBtn{
-  margin-top:16px;
-  background:#ff6b8b;
-  color:#150818;
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  font-weight:bold;
-}
-.backBtn:hover{
-  filter:brightness(1.1);
-}
-</style>
+  <meta charset="UTF-8" />
+  <title>Kokky's Onsen Dash – Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      background:#050814;
+      color:#f4f4ff;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+    #wrap{
+      width:100%;
+      max-width:520px;
+      padding:14px;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:1.4rem;
+      color:#ffd36b;
+      text-align:center;
+    }
+    p.note{
+      font-size:0.8rem;
+      color:#a8b0ff;
+      text-align:center;
+      margin:2px 0 10px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#0b0c1a;
+      border-radius:10px;
+      overflow:hidden;
+      font-size:0.85rem;
+    }
+    th,td{
+      padding:6px 8px;
+      border-bottom:1px solid #181a30;
+    }
+    th{
+      background:#181a30;
+      text-align:left;
+    }
+    tr:nth-child(even){
+      background:#11132a;
+    }
+    tr:nth-child(odd){
+      background:#0d0f22;
+    }
+    td.score{
+      text-align:right;
+      font-weight:600;
+    }
+    .backBtn{
+      margin-top:12px;
+      display:inline-block;
+      background:#ff6b8b;
+      color:#150818;
+      padding:8px 14px;
+      border-radius:10px;
+      font-weight:700;
+      text-decoration:none;
+      font-size:0.85rem;
+    }
+    .backBtn:hover{
+      filter:brightness(1.05);
+    }
+  </style>
 </head>
 <body>
+  <div id="wrap">
+    <h1>Kokky's Onsen Dash – Top Players</h1>
+    <p class="note">
+      Local leaderboard on this device (max 50 entries).<br/>
+      Player ID = Team-Number (e.g., W-18, R-A) or 0 for Guest.
+    </p>
+    <table id="lbTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th class="score">Score</th>
+        </tr>
+      </thead>
+      <tbody id="lbBody"></tbody>
+    </table>
 
-<h1>Top 20 – Local Leaderboard</h1>
-<table id="lbTable">
-  <tr><th>Rank</th><th>Name</th><th>Score</th></tr>
-</table>
+    <div style="text-align:center;">
+      <a class="backBtn" href="index.html">Back to Game</a>
+    </div>
+  </div>
 
-<button class="backBtn" onclick="location.href='index.html'">Back to Game</button>
+  <script>
+    function loadBoard(){
+      try{
+        const raw = localStorage.getItem("onsen_lb");
+        if(!raw) return [];
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr)?arr:[];
+      }catch(e){
+        return [];
+      }
+    }
 
-<script>
-function loadLB(){
-  try{
-    const list=JSON.parse(localStorage.getItem("onsen_lb")||"[]");
-    return Array.isArray(list)?list:[];
-  }catch(e){return [];}
-}
-function render(){
-  const list=loadLB();
-  const table=document.getElementById("lbTable");
+    function render(){
+      const tbody = document.getElementById("lbBody");
+      tbody.innerHTML = "";
+      let list = loadBoard();
 
-  for(let i=0;i<list.length;i++){
-    const e=list[i];
-    const row=document.createElement("tr");
-    row.innerHTML=`
-      <td class="rank">${i+1}</td>
-      <td>${e.name}</td>
-      <td>${e.score}</td>
-    `;
-    table.appendChild(row);
-  }
-}
-render();
-</script>
+      list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
+      list = list.slice(0,50);
 
+      list.forEach((e, idx)=>{
+        const tr = document.createElement("tr");
+        const rankTd = document.createElement("td");
+        const playerTd = document.createElement("td");
+        const scoreTd = document.createElement("td");
+
+        rankTd.textContent = idx+1;
+        playerTd.textContent = e.id || "-";
+        scoreTd.textContent = e.score;
+        scoreTd.className = "score";
+
+        tr.appendChild(rankTd);
+        tr.appendChild(playerTd);
+        tr.appendChild(scoreTd);
+        tbody.appendChild(tr);
+      });
+    }
+
+    render();
+  </script>
 </body>
 </html>
