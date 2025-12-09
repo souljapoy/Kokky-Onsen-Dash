@@ -1,73 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Kokky's Onsen Dash</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>Kokky's Onsen Dash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        background: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        touch-action: manipulation;
+    }
+    #gameCanvas {
+        background: #1d1d2e;
+        border: 3px solid #fff;
+    }
+    #playerSelect, #gameOverScreen {
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding-top: 100px;
+    }
+    select, button {
+        font-size: 20px;
+        padding: 10px;
+        margin: 8px;
+    }
+</style>
+
 </head>
+
 <body>
 
-  <div id="topBar">
-    <div id="scoreBox">
-      Score: <span id="score">0</span>
-      &nbsp;|&nbsp;
-      Best: <span id="best">0</span>
-    </div>
-    <div id="playerBox">
-      Player: <span id="playerIdLabel">Not set</span>
-      <button id="changePlayerBtn">Change Player</button>
-    </div>
-  </div>
+<!-- 🎮 Game Canvas -->
+<canvas id="gameCanvas" width="360" height="640"></canvas>
 
-  <div id="controlsBar">
-    <button id="startBtn">Play</button>
-    <a id="leaderboardLink" href="leaderboard.html" target="_blank">Leaderboard</a>
-  </div>
+<!-- Player Select UI -->
+<div id="playerSelect">
+    <h2>Select Player</h2>
+    <select id="teamSelect">
+        <option value="" disabled selected>Team</option>
+        <option value="W">White</option>
+        <option value="R">Red</option>
+        <option value="G">Green</option>
+        <option value="B">Blue</option>
+        <option value="X">Guest</option>
+    </select>
+    
+    <select id="numberSelect">
+        <option disabled selected>No.</option>
+    </select>
 
-  <div id="msg"></div>
+    <button onclick="confirmPlayer()">Start</button>
+</div>
 
-  <canvas id="game" width="480" height="640"></canvas>
+<!-- Game Over UI -->
+<div id="gameOverScreen">
+    <h2 id="gameOverMsg">Game Over</h2>
+    <p id="finalScore"></p>
+    <button onclick="resetGame()">Play Again</button>
+</div>
 
-  <p class="help">
-    Tap / Click / Space to hop through the onsen steam.<br />
-    Please select your team and number before playing.
-  </p>
+<script src="leaderboard.js"></script>
+<script src="game.js"></script>
 
-  <!-- Player selection overlay -->
-  <div id="playerOverlay" class="overlay hidden">
-    <div id="playerPanel">
-      <h2>Select Player</h2>
-
-      <div class="section">
-        <div class="sectionTitle">1. Choose Team</div>
-        <div id="teamButtons">
-          <button class="teamBtn" data-team="W">White</button>
-          <button class="teamBtn" data-team="R">Red</button>
-          <button class="teamBtn" data-team="G">Green</button>
-          <button class="teamBtn" data-team="B">Blue</button>
-          <button class="teamBtn" data-team="Guest">Guest</button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="sectionTitle">2. Choose Number</div>
-        <div id="numberList">
-          <p class="hint">Select a team first.</p>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="sectionTitle">3. Confirm</div>
-        <div id="selectedPreview">Player: -</div>
-        <div class="panelButtons">
-          <button id="confirmPlayerBtn" disabled>Use This Player</button>
-          <button id="cancelPlayerBtn">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="game.js"></script>
 </body>
 </html>
