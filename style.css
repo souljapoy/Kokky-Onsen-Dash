@@ -1,44 +1,117 @@
-:root{
-  --bg:#070717;
-  --panel:#0f1430;
-  --accent:#ffcc33;
-  --muted:#dbe4ff;
-  --card:#121433;
-  --glass: rgba(255,255,255,0.03);
-  --green:#5dd66b;
-  --red:#ff6b6b;
-  --blue:#6fb8ff;
-  --white:#f4f4f8;
-}
-*{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,'Hiragino Kaku Gothic ProN',sans-serif}
+*{box-sizing:border-box;}
 body{
-  margin:0;background:linear-gradient(180deg,#020217,#070717);color:var(--muted);min-height:100vh;
-  display:flex;align-items:center;justify-content:center;padding:14px;
+  margin:0;
+  background:#050814;
+  color:#f4f4ff;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  height:100vh;
+  overflow:hidden;
 }
-#container{width:100%;max-width:980px;background:var(--panel);border-radius:12px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,0.6)}
-header{text-align:center}
-h1{margin:4px 0;color:var(--accent);font-size:1.6rem}
-.subtitle{margin:0;color:#bfc8ff}
-main{margin-top:16px}
-label{display:block;margin:6px 0}
-input,select{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--card);color:var(--muted);width:100%}
-.menu-row{display:flex;gap:8px;margin-top:12px}
-button{padding:10px 14px;border-radius:8px;background:var(--accent);border:none;color:#111;font-weight:700;cursor:pointer}
-.hidden{display:none}
-#gameCanvas{background:linear-gradient(#05051a,#0d1333);display:block;margin:14px auto;border-radius:6px;outline:6px solid rgba(255,255,255,0.02)}
-#hud{display:flex;justify-content:space-between;padding:8px 12px;color:#a9b5ff}
-#leaderboard #topList, #adminPanel #adminList{background:var(--glass);padding:12px;border-radius:8px;max-height:360px;overflow:auto}
-.score-item{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(255,255,255,0.02)}
-.score-item .meta{font-size:0.86rem;color:#dbe4ff}
-.totals{display:flex;gap:8px;flex-wrap:wrap;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px}
-.total-card{padding:8px;border-radius:6px;min-width:110px;text-align:center}
-.total-card .num{font-size:1.4rem;font-weight:800}
-.meta{color:#bfc8ff;font-size:0.9rem}
-footer{margin-top:12px;text-align:center;color:#96a0ff;font-size:0.85rem}
 
-/* Touch controls */
-#touchControls{position:fixed;left:12px;bottom:12px;display:flex;gap:8px;align-items:center;z-index:40}
-.tbtn{width:48px;height:48px;border-radius:8px;background:rgba(255,255,255,0.06);border:none;color:var(--muted);font-size:20px}
-.tbtn.action{background:linear-gradient(180deg,#ff7b7b,#ff3b3b);color:#fff;font-weight:800}
-.tcol{display:flex;flex-direction:column;gap:8px}
-.small{font-size:0.85rem}
+#hud{
+  width:100%;
+  max-width:480px;
+  padding:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:bold;
+  font-size:0.9rem;
+}
+
+#startBtn{
+  background:#ff6b8b;
+  color:#150818;
+  border:none;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:bold;
+}
+#startBtn:hover{
+  filter:brightness(1.1);
+}
+
+#msg{
+  height:22px;
+  margin-top:2px;
+  font-size:0.9rem;
+  text-align:center;
+  width:100%;
+}
+
+#game{
+  background:#040a18;
+  border-radius:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.6);
+  width:480px;
+  height:640px;
+  max-width:100%;
+}
+
+.help{
+  font-size:0.75rem;
+  color:#a8b0ff;
+  text-align:center;
+  margin-top:4px;
+}
+
+/* Popup */
+
+#overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  z-index:10;
+}
+#namePopup{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:90%;
+  max-width:300px;
+  background:#15162a;
+  border-radius:14px;
+  padding:12px;
+  z-index:11;
+  text-align:center;
+}
+#namePopup h2{
+  margin:6px 0;
+  color:#ffd36b;
+  font-size:1.1rem;
+}
+#nameInput{
+  width:100%;
+  padding:6px 8px;
+  margin:8px 0;
+  background:#050814;
+  color:white;
+  border-radius:6px;
+  border:1px solid #444a88;
+}
+#nameError{
+  min-height:1.1em;
+  color:#ff8080;
+  font-size:0.75rem;
+}
+.popupButtons{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+}
+.popupButtons button{
+  background:#ff6b8b;
+  border:none;
+  padding:6px 10px;
+  color:#150818;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+}
+.hidden{display:none;}
