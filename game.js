@@ -5,7 +5,6 @@ const ctx = canvas.getContext("2d");
 
 const scoreEl = document.getElementById("score");
 const bestEl  = document.getElementById("best");
-const startBtn = document.getElementById("startBtn");
 const msgEl   = document.getElementById("msg");
 
 const playerOverlay = document.getElementById("playerOverlay");
@@ -49,6 +48,7 @@ let score = 0;
 let obstaclesPassed = 0;
 let carrotWaveCount = 0;
 let lastCarrotWaveObstacleCount = 0;
+let carrotPatternIndex = 0;
 
 let currentPlayerId = localStorage.getItem("onsen_player_id") || null;
 
@@ -70,6 +70,14 @@ let rankPopupTitle = "";
 // Screen shake
 let shakeTimer = 0;
 
+// Hop steam particles
+let hopPuffs = [];
+
+// Background elements
+let stars = [];
+let lanternPhase = 0;
+let steamWisps = [];
+
 // Kokky sprite
 const kokkyImg = new Image();
 kokkyImg.src = "kokky.png";
@@ -79,8 +87,10 @@ kokkyImg.onload = () => { kokkyLoaded = true; };
 // Init UI
 updatePlayerLabel();
 updateBestFromLeaderboard();
+initStars();
+initSteamWisps();
 
-// Controls
+// Controls – start on first tap / space
 window.addEventListener("keydown", e=>{
   if(e.code === "Space"){
     if(!running){
@@ -98,10 +108,6 @@ canvas.addEventListener("pointerdown", () => {
   }else{
     hop();
   }
-});
-
-startBtn.addEventListener("click", () => {
-  startGame();
 });
 
 changePlayerBtn.addEventListener("click", () => {
@@ -261,13 +267,36 @@ function updateBestFromLeaderboard(){
   bestEl.textContent = best;
 }
 
-// Returns highest rank index reached for a given obstacle count
 function getRankIndexForObstacles(count){
   let idx = -1;
   for(let i=0; i<RANKS.length; i++){
     if(count >= RANKS[i].threshold) idx = i;
   }
   return idx;
+}
+
+// Background init
+function initStars(){
+  stars = [];
+  for(let i=0;i<60;i++){
+    stars.push({
+      x: Math.random()*W,
+      y: Math.random()*H*0.5,
+      phase: Math.random()*Math.PI*2
+    });
+  }
+}
+
+function initSteamWisps(){
+  steamWisps = [];
+  for(let i=0;i<15;i++){
+    steamWisps.push({
+      x: Math.random()*W,
+      y: H - 40 - Math.random()*80,
+      speedY: 0.3 + Math.random()*0.3,
+      alpha: 0.3 + Math.random()*0.2
+    });
+  }
 }
 
 // Game control
@@ -281,6 +310,7 @@ function startGame() {
   obstaclesPassed = 0;
   carrotWaveCount = 0;
   lastCarrotWaveObstacleCount = 0;
+  carrotPatternIndex = 0;
   nextRankIndex = 0;
   rankPopupTimer = 0;
   rankPopupTitle = "";
@@ -288,6 +318,7 @@ function startGame() {
   msgEl.textContent = "";
   obstacles = [];
   carrots = [];
+  hopPuffs = [];
   player.y = H/2;
   player.vy = 0;
   spawnTimer = 0;
@@ -296,6 +327,14 @@ function startGame() {
 function hop() {
   if(!running) return;
   player.vy = hopPower;
+
+  // add hop steam puff
+  hopPuffs.push({
+    x: player.x,
+    y: player.y + player.r,
+    radius: 10,
+    alpha: 0.7
+  });
 }
 
 // Spawning
@@ -315,16 +354,42 @@ function addObstacle(){
   });
 }
 
+// Carrot patterns: 0=U,1=rise,2=fall,3=flat,4=wavy
 function spawnCarrotWave() {
   carrotWaveCount++;
   const hasGolden = (carrotWaveCount % 3 === 0);
   const goldenIndex = hasGolden ? Math.floor(Math.random()*5) : -1;
+
+  const pattern = carrotPatternIndex % 5;
+  carrotPatternIndex++;
+
+  const baseX = W + 80;
+  const stepX = 32;
   const baseY = H/2;
 
   for(let i=0;i<5;i++){
-    const offsetY = Math.sin(i * 0.7) * 40;
+    let offsetY = 0;
+    if(pattern === 0){
+      // U-shape
+      const center = 2;
+      const d = i - center;
+      offsetY = d*d * 8; // 0,8,32,8,0
+    }else if(pattern === 1){
+      // rising diagonal ↗
+      offsetY = -20 + i*12;
+    }else if(pattern === 2){
+      // falling diagonal ↘
+      offsetY = 20 - i*12;
+    }else if(pattern === 3){
+      // flat line
+      offsetY = -10;
+    }else if(pattern === 4){
+      // wavy
+      offsetY = Math.sin(i * 1.2) * 30;
+    }
+
     carrots.push({
-      x: W + 80 + i*32, // start a bit further right than obstacle
+      x: baseX + i*stepX,
       y: baseY + offsetY,
       r: 10,
       golden: (i === goldenIndex)
@@ -366,7 +431,6 @@ function endGame(){
   const prevScore = entry ? entry.score : 0;
   const prevRankIndex = entry && typeof entry.bestRankIndex === "number" ? entry.bestRankIndex : -1;
 
-  // Always keep best rank; keep best score separately
   const isBetterScore = score > prevScore;
   const isBetterRank  = runRankIndex > prevRankIndex;
 
@@ -386,21 +450,19 @@ function endGame(){
     if(isBetterRank){
       entry.bestRankIndex = runRankIndex;
       if(!isBetterScore){
-        entry.ts = Date.now(); // update timestamp when rank improves
+        entry.ts = Date.now();
       }
     }
   }
 
-  // Sort by score desc, then older timestamp first
   list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
   if(list.length > 50) list = list.slice(0,50);
   saveBoard(list);
 
-  const bestLabelRank = prevScore > 0 ? `(Best: ${prevScore})` : "";
   if(isBetterScore){
     msgEl.textContent = `New Best! ${score}`;
   }else{
-    msgEl.textContent = `Score: ${score} ${bestLabelRank}`;
+    msgEl.textContent = `Score: ${score} (Best: ${prevScore})`;
   }
 
   updateBestFromLeaderboard();
@@ -412,7 +474,7 @@ function checkRankUp() {
   const nextRank = RANKS[nextRankIndex];
   if(obstaclesPassed >= nextRank.threshold){
     rankPopupTitle = nextRank.title;
-    rankPopupTimer = 90; // frames
+    rankPopupTimer = 150; // longer popup
     nextRankIndex++;
   }
 }
@@ -425,7 +487,6 @@ function updateGame(){
   player.vy += gravity;
   player.y += player.vy;
 
-  // floor/ceiling
   if(player.y + player.r > H || player.y - player.r < 0){
     endGame();
     return;
@@ -433,14 +494,14 @@ function updateGame(){
 
   const speed = obstaclesPassed >= 60 ? boostedSpeed : baseSpeed;
 
-  // Obstacle spawn – allow spawn unless carrots are in right half
+  // Obstacle spawn – allow spawn unless carrots mostly on right
   let canSpawnObstacle = true;
   if(carrots.length > 0){
     let maxCarrotX = -Infinity;
     for(const c of carrots){
       if(c.x > maxCarrotX) maxCarrotX = c.x;
     }
-    if(maxCarrotX > W/2){
+    if(maxCarrotX > W*0.7){ // smaller gap vs before (0.7 "distance")
       canSpawnObstacle = false;
     }
   }
@@ -493,6 +554,24 @@ function updateGame(){
     }
     return c.x > -30;
   });
+
+  // hop steam puffs update
+  hopPuffs.forEach(p=>{
+    p.y -= 0.8;
+    p.radius += 0.5;
+    p.alpha -= 0.03;
+  });
+  hopPuffs = hopPuffs.filter(p=>p.alpha > 0);
+
+  // background animation phases
+  lanternPhase += 0.02;
+  steamWisps.forEach(w=>{
+    w.y -= w.speedY;
+    if(w.y < H - 140) {
+      w.y = H - 40 - Math.random()*40;
+      w.x = Math.random()*W;
+    }
+  });
 }
 
 // Draw
@@ -506,28 +585,142 @@ function draw(){
     shakeTimer--;
   }
 
-  // background
+  // sky
   ctx.fillStyle = "#050716";
   ctx.fillRect(0,0,W,H);
 
-  // simple sky gradient
   const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0, "#060b2a");
-  grad.addColorStop(1, "#0b1028");
+  grad.addColorStop(0, "#050922");
+  grad.addColorStop(1, "#080c24");
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,W,H);
 
-  // moon
-  ctx.fillStyle = "#f5f7ff";
+  // stars twinkle
+  ctx.save();
+  stars.forEach(s=>{
+    const tw = 0.5 + 0.5*Math.sin(performance.now()/400 + s.phase);
+    ctx.globalAlpha = 0.3 + 0.5*tw;
+    ctx.fillStyle = "#e8f0ff";
+    ctx.fillRect(s.x, s.y, 2, 2);
+  });
+  ctx.restore();
+
+  // moon with warm color + slight texture
+  ctx.save();
+  const moonX = W - 80;
+  const moonY = 80;
+  const moonR = 26;
+  const moonGrad = ctx.createRadialGradient(
+    moonX-8, moonY-8, 4,
+    moonX, moonY, moonR+6
+  );
+  moonGrad.addColorStop(0, "#fff9d9");
+  moonGrad.addColorStop(1, "#bba86a");
+  ctx.fillStyle = moonGrad;
   ctx.beginPath();
-  ctx.arc(W-70,80,26,0,Math.PI*2);
+  ctx.arc(moonX, moonY, moonR, 0, Math.PI*2);
   ctx.fill();
 
-  // obstacles
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = "#d8c78a";
+  ctx.beginPath();
+  ctx.arc(moonX-8, moonY-6, 6, 0, Math.PI*2);
+  ctx.arc(moonX+5, moonY+4, 4, 0, Math.PI*2);
+  ctx.arc(moonX+10, moonY-10, 3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // snowy Nagano mountains
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0, H*0.55);
+  ctx.lineTo(W*0.15, H*0.4);
+  ctx.lineTo(W*0.3, H*0.55);
+  ctx.lineTo(W*0.5, H*0.35);
+  ctx.lineTo(W*0.7, H*0.55);
+  ctx.lineTo(W*0.85, H*0.42);
+  ctx.lineTo(W, H*0.55);
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fillStyle = "#0b1022";
+  ctx.fill();
+
+  // snow caps
+  ctx.beginPath();
+  ctx.moveTo(W*0.15, H*0.4);
+  ctx.lineTo(W*0.14, H*0.43);
+  ctx.lineTo(W*0.16, H*0.43);
+  ctx.closePath();
+  ctx.moveTo(W*0.5, H*0.35);
+  ctx.lineTo(W*0.49, H*0.38);
+  ctx.lineTo(W*0.51, H*0.38);
+  ctx.closePath();
+  ctx.moveTo(W*0.85, H*0.42);
+  ctx.lineTo(W*0.84, H*0.45);
+  ctx.lineTo(W*0.86, H*0.45);
+  ctx.closePath();
+  ctx.fillStyle = "#e5ecff";
+  ctx.fill();
+  ctx.restore();
+
+  // runway-style lanterns
+  ctx.save();
+  const lanternY = H*0.7;
+  for(let x = -20; x < W+40; x += 50){
+    const phase = lanternPhase + x*0.05;
+    const glow = 0.7 + 0.3*Math.sin(phase);
+    ctx.globalAlpha = 0.6 + 0.2*glow;
+    ctx.fillStyle = "#ffcf6b";
+    ctx.beginPath();
+    ctx.arc(x, lanternY, 4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // bottom onsen steam blanket
+  ctx.save();
+  const steamGrad = ctx.createLinearGradient(0, H*0.8, 0, H);
+  steamGrad.addColorStop(0, "rgba(255,255,255,0)");
+  steamGrad.addColorStop(1, "rgba(255,255,255,0.32)");
+  ctx.fillStyle = steamGrad;
+  ctx.fillRect(0, H*0.75, W, H*0.25);
+  ctx.restore();
+
+  // drifting steam wisps (foreground)
+  ctx.save();
+  steamWisps.forEach(w=>{
+    ctx.globalAlpha = w.alpha;
+    ctx.fillStyle = "#f7f9ff";
+    ctx.beginPath();
+    ctx.ellipse(w.x, w.y, 30, 10, 0, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
+
+  // obstacles as steam pillars
   obstacles.forEach(o=>{
-    ctx.fillStyle = "rgba(240,240,255,0.8)";
-    ctx.fillRect(o.x,0,40,o.top);
-    ctx.fillRect(o.x,o.top+o.gap,40,H-(o.top+o.gap));
+    const steamColor = "rgba(255,255,255,0.25)";
+
+    // gentle drift factor
+    const drift = Math.sin((performance.now()/800) + o.x*0.01)*2;
+
+    ctx.save();
+    ctx.translate(drift, 0);
+
+    // top pillar
+    ctx.fillStyle = steamColor;
+    ctx.beginPath();
+    ctx.roundRect(o.x, 0, 40, o.top, 8);
+    ctx.fill();
+
+    // bottom pillar
+    const bottomHeight = H - (o.top + o.gap);
+    ctx.beginPath();
+    ctx.roundRect(o.x, o.top + o.gap, 40, bottomHeight, 8);
+    ctx.fill();
+
+    ctx.restore();
   });
 
   // carrots
@@ -537,6 +730,17 @@ function draw(){
     ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
     ctx.fill();
   });
+
+  // hop puffs
+  ctx.save();
+  hopPuffs.forEach(p=>{
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = "#f5f7ff";
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.radius*1.2, p.radius*0.6, 0, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
 
   // player
   if(kokkyLoaded){
@@ -549,24 +753,41 @@ function draw(){
     ctx.fill();
   }
 
-  // rank popup
+  // rank popup (gold banner)
   if(rankPopupTimer > 0){
-    const alpha = rankPopupTimer > 20 ? 1 : rankPopupTimer/20;
+    const alpha = rankPopupTimer > 30 ? 1 : rankPopupTimer/30;
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "#000000aa";
-    const boxW = 260;
-    const boxH = 60;
+    const boxW = 280;
+    const boxH = 70;
     const bx = (W - boxW)/2;
-    const by = 90;
-    ctx.fillRect(bx,by,boxW,boxH);
+    const by = 100;
 
-    ctx.fillStyle = "#ffe79c";
-    ctx.font = "16px 'Handjet'";
+    const rgrad = ctx.createLinearGradient(bx, by, bx+boxW, by+boxH);
+    rgrad.addColorStop(0, "#ffeb9c");
+    rgrad.addColorStop(1, "#f6c14d");
+    ctx.fillStyle = rgrad;
+    ctx.beginPath();
+    ctx.roundRect(bx,by,boxW,boxH,12);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = "#7a4b00";
+    ctx.font = "18px 'Handjet'";
     ctx.textAlign = "center";
-    ctx.fillText("Rank Up!", W/2, by+24);
+    ctx.fillText("Rank Up!", W/2, by+30);
 
+    ctx.font = "16px 'Handjet'";
+    ctx.fillText(rankPopupTitle, W/2, by+50);
+
+    // simple sparkles
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(rankPopupTitle, W/2, by+44);
+    ctx.beginPath();
+    ctx.arc(bx+25, by+18, 2, 0, Math.PI*2);
+    ctx.arc(bx+boxW-25, by+22, 2, 0, Math.PI*2);
+    ctx.fill();
 
     ctx.globalAlpha = 1;
     rankPopupTimer--;
