@@ -1,11 +1,10 @@
-// Kokky's Hot Spring Hop – polished build
-// - Uses mountains.png as parallax background
-// - Uses wood.png as obstacle art
-// - Carrot waves every 10 obstacles (10 carrots, mixed heights)
-// - Fixed small gap (0.5-ish) before and after carrot waves
-// - Snow that melts into steam near bottom
-// - Hop sound (hop1.mp3, medium volume)
-// - Rank titles saved in leaderboard
+// Kokky's Hot Spring Hop – current polished build
+// Uses:
+//  - kokky.png        (player)
+//  - mountains.png    (background parallax)
+//  - wood.png         (bamboo obstacles)
+//  - steam.png        (bottom steam strip)
+//  - hop1.mp3         (jump sfx)
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -65,13 +64,32 @@ woodImg.src = "wood.png";
 let woodLoaded = false;
 woodImg.onload = () => { woodLoaded = true; };
 
-// Hop sound (medium volume)
-let hopSound;
-try {
-  hopSound = new Audio("hop1.mp3");
-  hopSound.volume = 0.5;
-} catch (e) {
-  hopSound = null;
+const steamImg = new Image();
+steamImg.src = "steam.png";
+let steamLoaded = false;
+steamImg.onload = () => { steamLoaded = true; };
+
+// Hop sound pool (to reduce lag on mobile)
+let hopSounds = [];
+let hopSoundIndex = 0;
+for (let i = 0; i < 3; i++) {
+  try {
+    const a = new Audio("hop1.mp3");
+    a.volume = 0.45;
+    hopSounds.push(a);
+  } catch (e) {}
+}
+
+function playHopSound() {
+  if (!hopSounds.length) return;
+  const a = hopSounds[hopSoundIndex];
+  hopSoundIndex = (hopSoundIndex + 1) % hopSounds.length;
+  try {
+    a.currentTime = 0;
+    a.play();
+  } catch (e) {
+    // ignore autoplay errors
+  }
 }
 
 // ------------ Game state ------------
@@ -93,6 +111,7 @@ const hopPower = -8.8;
 const gapSize = 180;
 let spawnTimer = 0;
 
+// game speed (single bump after level 60)
 const baseSpeed = 3;
 const boostedSpeed = 3.8;
 
@@ -111,8 +130,9 @@ let hopPuffs = [];
 let stars = [];
 let snowflakes = [];
 
-// Mountains parallax
+// Mountains & steam parallax
 let mountainsOffset = 0;
+let steamOffset = 0;
 
 // Carrot wave–linked obstacle spawn
 let needObstacleAfterWave = false;
@@ -369,14 +389,7 @@ function hop() {
     alpha: 0.35
   });
 
-  if (hopSound) {
-    try {
-      hopSound.currentTime = 0;
-      hopSound.play();
-    } catch {
-      // ignore autoplay errors
-    }
-  }
+  playHopSound();
 }
 
 // ------------ Spawning ------------
@@ -438,7 +451,7 @@ function spawnCarrotWave() {
 
   // Force next obstacle to appear soon after wave
   needObstacleAfterWave = true;
-  obstacleAfterWaveX = lastX + 80; // ~0.5 of usual spacing
+  obstacleAfterWaveX = lastX + 40; // tighter spacing after wave
 }
 
 // ------------ Collision helpers ------------
@@ -543,9 +556,12 @@ function updateGame() {
 
   const speed = obstaclesPassed >= 60 ? boostedSpeed : baseSpeed;
 
-  // parallax mountains
+  // parallax mountains & steam scroll
   mountainsOffset -= speed * 0.25;
   if (mountainsOffset <= -W) mountainsOffset += W;
+
+  steamOffset -= speed * 0.5;
+  if (steamOffset <= -W) steamOffset += W;
 
   // gentle snow
   snowflakes.forEach(s => {
@@ -562,13 +578,15 @@ function updateGame() {
     }
   });
 
-  // obstacle spawn: check if we need one after carrot wave
+  // obstacle spawn
+  const maxSpacing = 80; // slightly tighter than before
+
   if (needObstacleAfterWave) {
     addObstacle(obstacleAfterWaveX);
     needObstacleAfterWave = false;
+    spawnTimer = 0;
   } else {
     spawnTimer++;
-    const maxSpacing = 90; // base spacing
     if (spawnTimer > maxSpacing) {
       spawnTimer = 0;
       addObstacle();
@@ -623,8 +641,6 @@ function updateGame() {
     p.alpha -= 0.03;
   });
   hopPuffs = hopPuffs.filter(p => p.alpha > 0);
-
-  // background motion (stars twinkle via time inside draw)
 
   // rank popup timer
   if (rankPopupTimer > 0) {
@@ -687,21 +703,31 @@ function draw() {
   ctx.fill();
   ctx.restore();
 
-  // mountains layer
+  // mountains layer (parallax)
   if (mountainsLoaded) {
     const mh = 220;
     const my = H * 0.45;
     const scale = mh / mountainsImg.height;
     const mw = mountainsImg.width * scale;
 
+    // loop; slight dark overlay later hides seam
     let x = mountainsOffset % mw;
     if (x > 0) x -= mw;
 
     ctx.save();
-    ctx.globalAlpha = 0.95;
+    ctx.globalAlpha = 0.96;
     for (; x < W; x += mw) {
       ctx.drawImage(mountainsImg, x, my, mw, mh);
     }
+    ctx.restore();
+
+    // subtle dark overlay to hide any edge seams
+    ctx.save();
+    const g = ctx.createLinearGradient(0, my, 0, my + mh);
+    g.addColorStop(0, "rgba(0,0,0,0.15)");
+    g.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, my, W, mh);
     ctx.restore();
   }
 
@@ -716,16 +742,34 @@ function draw() {
   });
   ctx.restore();
 
-  // bottom onsen steam
+  // bottom onsen steam – image-based + gradient
+  if (steamLoaded) {
+    ctx.save();
+    const sh = 170;
+    const sy = H - sh;
+    const scaleY = sh / steamImg.height;
+    const sw = steamImg.width * scaleY;
+
+    let x = steamOffset % sw;
+    if (x > 0) x -= sw;
+
+    ctx.globalAlpha = 0.96;
+    for (; x < W; x += sw) {
+      ctx.drawImage(steamImg, x, sy, sw, sh);
+    }
+    ctx.restore();
+  }
+
+  // soft fade up so it blends
   ctx.save();
-  const steamGrad = ctx.createLinearGradient(0, H * 0.8, 0, H);
-  steamGrad.addColorStop(0, "rgba(255,255,255,0)");
+  const steamGrad = ctx.createLinearGradient(0, H * 0.78, 0, H);
+  steamGrad.addColorStop(0, "rgba(20,20,40,0)");
   steamGrad.addColorStop(1, "rgba(255,255,255,0.45)");
   ctx.fillStyle = steamGrad;
-  ctx.fillRect(0, H * 0.74, W, H * 0.26);
+  ctx.fillRect(0, H * 0.75, W, H * 0.25);
   ctx.restore();
 
-  // obstacles: wood planks
+  // obstacles: bamboo (woodImg)
   obstacles.forEach(o => {
     if (woodLoaded) {
       const bottomHeight = H - (o.top + o.gap);
