@@ -1,137 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Kokky's Hot Spring Hop – Scoreboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@300;500;700&display=swap" rel="stylesheet">
-
   <style>
-    *{box-sizing:border-box;}
-    html,body{
-      margin:0;
-      padding:0;
-      height:100%;
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #02040b;
+      color: #f4f4ff;
+      font-family: "Handjet", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     }
-    body{
-      background:#02040b;
-      color:#f4f4ff;
-      font-family:"Handjet",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-      min-height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
+    h1 {
+      text-align: center;
+      margin: 4px 0;
+      font-size: 1.6rem;
     }
-    #wrap{
-      width:100%;
-      max-width:520px;
-      padding:10px;
+    p.info {
+      text-align: center;
+      margin: 2px 0 10px;
+      font-size: 0.95rem;
+      color: #cfd2ff;
     }
-    h1{
-      margin:0 0 6px;
-      font-size:1.2rem;
-      color:#ffd36b;
-      text-align:center;
+    table {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      border-collapse: collapse;
+      background: #111327;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
     }
-    p.note{
-      font-size:0.85rem;
-      color:#a8b0ff;
-      text-align:center;
-      margin:4px 0 10px;
+    thead {
+      background: #222541;
     }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      background:#0b0c1a;
-      border-radius:10px;
-      overflow:hidden;
-      font-size:0.85rem;
+    th, td {
+      padding: 6px 8px;
+      font-size: 0.95rem;
+      text-align: left;
     }
-    th,td{
-      padding:6px 8px;
-      border-bottom:1px solid #181a30;
+    th {
+      font-weight: 700;
+      color: #ffd36b;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
     }
-    th{
-      background:#181a30;
-      text-align:left;
+    tr:nth-child(even) td {
+      background: #151733;
     }
-    th.scoreHead{
-      text-align:center;
+    tr:nth-child(odd) td {
+      background: #101228;
     }
-    td.rankNum{
-      text-align:center;
+    td.rankCol {
+      width: 40px;
+      text-align: center;
     }
-    td.score{
-      text-align:center;
-      font-weight:600;
+    td.scoreCol {
+      width: 70px;
+      text-align: right;
     }
-    tr:nth-child(even){
-      background:#11132a;
+    td.playerCol {
+      width: 120px;
     }
-    tr:nth-child(odd){
-      background:#0d0f22;
+    td.bestRankCol {
+      text-align: left;
     }
-    .backBtn{
-      margin-top:10px;
-      display:inline-block;
-      background:#ff6b8b;
-      color:#150818;
-      padding:6px 12px;
-      border-radius:10px;
-      font-weight:700;
-      text-decoration:none;
-      font-size:0.85rem;
-    }
-    .backBtn:hover{
-      filter:brightness(1.05);
-    }
-
-    @media (max-width:600px){
-      #wrap{
-        padding:8px;
-      }
-      h1{
-        font-size:1.05rem;
-      }
-      p.note{
-        font-size:0.8rem;
-      }
-      table{
-        font-size:0.8rem;
-      }
-      .backBtn{
-        font-size:0.8rem;
-        padding:6px 10px;
-      }
+    .backLink {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      text-decoration: none;
+      color: #050814;
+      background: #ffffff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      width: 160px;
+      margin-left: auto;
+      margin-right: auto;
+      font-weight: 700;
     }
   </style>
 </head>
 <body>
-  <div id="wrap">
-    <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
-    <p class="note">
-      Showing scores recorded on <strong>this device</strong> only.<br/>
-      Your scores are also saved to an overall scoreboard online.
-    </p>
-    <table id="lbTable">
-      <thead>
-        <tr>
-          <th class="scoreHead">#</th>
-          <th>Player</th>
-          <th class="scoreHead">Score</th>
-          <th>Best Rank</th>
-        </tr>
-      </thead>
-      <tbody id="lbBody"></tbody>
-    </table>
+  <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
+  <p class="info">Local leaderboard on this device only.</p>
+  <p class="info">Your scores are also saved to an overall scoreboard online.</p>
 
-    <div style="text-align:center;">
-      <a class="backBtn" href="index.html">Back to Game</a>
-    </div>
-  </div>
+  <table id="board">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Player</th>
+        <th>Score</th>
+        <th>Best Rank</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- filled by script -->
+    </tbody>
+  </table>
+
+  <a href="index.html" class="backLink">Back to game</a>
 
   <script>
     const RANKS = [
@@ -144,54 +118,69 @@
       { threshold: 1000, title: "Onsen God" }
     ];
 
-    function loadBoard(){
-      try{
+    function loadBoard() {
+      try {
         const raw = localStorage.getItem("onsen_lb");
-        if(!raw) return [];
+        if (!raw) return [];
         const arr = JSON.parse(raw);
-        return Array.isArray(arr)?arr:[];
-      }catch(e){
+        return Array.isArray(arr) ? arr : [];
+      } catch {
         return [];
       }
     }
 
-    function rankLabelFromIndex(idx){
-      if(typeof idx !== "number" || idx < 0 || idx >= RANKS.length) return "-";
-      return RANKS[idx].title;
+    function bestRankTitle(index) {
+      if (typeof index !== "number" || index < 0) return "-";
+      if (index >= RANKS.length) index = RANKS.length - 1;
+      return RANKS[index].title;
     }
 
-    function render(){
-      const tbody = document.getElementById("lbBody");
+    function displayBoard() {
+      const tbody = document.querySelector("#board tbody");
       tbody.innerHTML = "";
-      let list = loadBoard();
+      const list = loadBoard();
 
-      list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
-      list = list.slice(0,50);
-
-      list.forEach((e, idx)=>{
+      if (!list.length) {
         const tr = document.createElement("tr");
-        const rankTd = document.createElement("td");
-        const playerTd = document.createElement("td");
-        const scoreTd = document.createElement("td");
-        const bestRankTd = document.createElement("td");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.textContent = "No scores yet. Go hop!";
+        td.style.textAlign = "center";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
 
-        rankTd.textContent = idx+1;
-        rankTd.className = "rankNum";
+      list.sort((a,b) => b.score - a.score || a.ts - b.ts);
 
-        playerTd.textContent = (e.id === "0" ? "Guest" : (e.id || "-"));
-        scoreTd.textContent = e.score;
-        scoreTd.className = "score";
-        bestRankTd.textContent = rankLabelFromIndex(e.bestRankIndex);
+      list.forEach((entry, idx) => {
+        const tr = document.createElement("tr");
 
-        tr.appendChild(rankTd);
-        tr.appendChild(playerTd);
-        tr.appendChild(scoreTd);
-        tr.appendChild(bestRankTd);
+        const tdRank = document.createElement("td");
+        tdRank.className = "rankCol";
+        tdRank.textContent = idx + 1;
+        tr.appendChild(tdRank);
+
+        const tdPlayer = document.createElement("td");
+        tdPlayer.className = "playerCol";
+        tdPlayer.textContent = entry.id === "0" ? "Guest" : entry.id;
+        tr.appendChild(tdPlayer);
+
+        const tdScore = document.createElement("td");
+        tdScore.className = "scoreCol";
+        tdScore.textContent = entry.score;
+        tr.appendChild(tdScore);
+
+        const tdBestRank = document.createElement("td");
+        tdBestRank.className = "bestRankCol";
+        tdBestRank.textContent = bestRankTitle(entry.bestRankIndex);
+        tr.appendChild(tdBestRank);
+
         tbody.appendChild(tr);
       });
     }
 
-    render();
+    displayBoard();
   </script>
 </body>
 </html>
