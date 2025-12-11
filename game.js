@@ -1,4 +1,5 @@
-// Kokky's Hot Spring Hop – no carrots, no sound, restored sky/steam
+// Kokky's Hot Spring Hop – polished visual + physics build
+// No carrots, no sound. Lanterns + snow + moon + stars + steam.
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
@@ -30,7 +31,6 @@ const TEAM_CONFIG = {
   Guest: { label: "Guest", numbers: [0], alts: [] }
 };
 
-// We keep ranks (based on obstacles passed)
 const RANKS = [
   { threshold: 25,  title: "Steam Hopper" },
   { threshold: 50,  title: "Onsen Ace" },
@@ -40,6 +40,8 @@ const RANKS = [
   { threshold: 500, title: "Onsen Legend" },
   { threshold: 1000, title: "Onsen God" }
 ];
+
+// ---- Assets ----
 
 const kokkyImg = new Image();
 kokkyImg.src = "kokky.png";
@@ -61,14 +63,16 @@ steamImg.src = "steam.png";
 let steamLoaded = false;
 steamImg.onload = () => { steamLoaded = true; };
 
+// ---- Game state ----
+
 let currentPlayerId = localStorage.getItem("onsen_player_id") || null;
 
-// Player and physics
-let player = { x: 120, y: H/2, vy: 0, r: 24 };
+// Player
+let player = { x: 120, y: H/2, vy: 0, r: 21 }; // slightly smaller radius
 const gravity = 0.45;
 const hopPower = -8.8;
 
-// Game state
+// Core state
 let running = false;
 let obstacles = [];
 let score = 0;
@@ -81,12 +85,11 @@ let mountainsOffset = 0;
 let steamOffset = 0;
 let steamPhase = 0;
 
-// Hop puffs
+// Effects
 let hopPuffs = [];
-
-// Stars & snow
 let stars = [];
 let snowflakes = [];
+let lanterns = [];
 
 // Rank popup
 let nextRankIndex = 0;
@@ -96,7 +99,7 @@ let rankPopupTitle = "";
 // Screen shake
 let shakeTimer = 0;
 
-// Gap & speeds
+// Gap / speed
 const gapSize = 150;
 const baseSpeed = 3;
 const boostedSpeed = 3.8;
@@ -105,6 +108,7 @@ const boostedSpeed = 3.8;
 
 initStars();
 initSnow();
+initLanterns();
 updatePlayerLabel();
 updateBestFromLeaderboard();
 initControls();
@@ -300,6 +304,18 @@ function initSnow() {
   }
 }
 
+function initLanterns() {
+  lanterns = [];
+  const count = 8;
+  for (let i = 0; i < count; i++) {
+    lanterns.push({
+      x: i * 120 + 60,
+      y: H * 0.55 + Math.random() * 80,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
 // ---- Game control ----
 
 function startGame() {
@@ -327,7 +343,7 @@ function hop() {
   if (!running) return;
   player.vy = hopPower;
 
-  // flat steam puff, more visible
+  // flat hop steam puff (more visible)
   hopPuffs.push({
     x: player.x,
     y: player.y + player.r * 0.7,
@@ -400,16 +416,21 @@ function checkRankUp() {
 // ---- Obstacles ----
 
 function addObstacle() {
-  const minCenter = 120;
-  const maxCenter = H - 180;
-  const maxDelta = 80; // how much it can move up/down from last gap
+  const minCenter = 140;
+  const maxCenter = H - 200;
+  const maxDelta = 120;
 
   let center = lastGapCenter + (Math.random() * 2 - 1) * maxDelta;
+
+  // Occasionally force extremes to create real challenge
+  if (Math.random() < 0.15) {
+    center = Math.random() < 0.5 ? minCenter : maxCenter;
+  }
+
   center = Math.max(minCenter, Math.min(maxCenter, center));
   lastGapCenter = center;
 
   const top = center - gapSize / 2;
-
   obstacles.push({
     x: W + 40,
     top,
@@ -418,13 +439,44 @@ function addObstacle() {
   });
 }
 
+// collision using slightly lower center (ears forgiven a bit)
 function collideObstacle(o) {
-  if (player.x + player.r > o.x && player.x - player.r < o.x + 40) {
-    if (player.y - player.r < o.top || player.y + player.r > o.top + o.gap) {
+  const colY = player.y + 4;
+  const r = player.r;
+
+  if (player.x + r > o.x && player.x - r < o.x + 40) {
+    if (colY - r < o.top || colY + r > o.top + o.gap) {
       return true;
     }
   }
   return false;
+}
+
+// ---- Bamboo draw (tiled, not stretched) ----
+
+function drawBambooPillar(x, y, height) {
+  if (!woodLoaded || height <= 0) return;
+
+  const targetW = 40;
+  const scale = targetW / woodImg.width;
+  const segH = woodImg.height * scale;
+
+  let remaining = height;
+  let drawY = y;
+
+  while (remaining > 0) {
+    const h = Math.min(segH, remaining);
+    const srcH = (h / segH) * woodImg.height;
+
+    ctx.drawImage(
+      woodImg,
+      0, 0, woodImg.width, srcH,
+      x, drawY, targetW, h
+    );
+
+    drawY += h;
+    remaining -= h;
+  }
 }
 
 // ---- Update ----
@@ -442,14 +494,13 @@ function updateGame() {
 
   const speed = obstaclesPassed >= 60 ? boostedSpeed : baseSpeed;
 
-  // parallax
   mountainsOffset -= speed * 0.25;
   if (mountainsOffset <= -W) mountainsOffset += W;
 
   steamOffset -= speed * 0.5;
   if (steamOffset <= -W) steamOffset += W;
 
-  steamPhase += 0.02; // gentle vertical breathing for steam
+  steamPhase += 0.02;
 
   // snow fall
   snowflakes.forEach(s => {
@@ -464,6 +515,15 @@ function updateGame() {
     }
   });
 
+  // lanterns scroll (behind obstacles)
+  lanterns.forEach(l => {
+    l.x -= speed * 0.6;
+    if (l.x < -40) {
+      l.x += W + 160;
+      l.y = H * 0.55 + Math.random() * 80;
+    }
+  });
+
   // obstacle spawn
   spawnTimer++;
   if (spawnTimer > 80) {
@@ -471,7 +531,7 @@ function updateGame() {
     addObstacle();
   }
 
-  // move obstacles & scoring
+  // obstacles move / scoring
   obstacles.forEach(o => {
     o.x -= speed;
     if (!o.passed && o.x + 40 < player.x) {
@@ -483,17 +543,16 @@ function updateGame() {
     }
   });
 
-  // collision
   for (const o of obstacles) {
     if (collideObstacle(o)) {
       endGame();
-      return; // keep obstacles; don't delete them on hit
+      return; // keep obstacles; don't remove on hit
     }
   }
 
   obstacles = obstacles.filter(o => o.x > -60);
 
-  // hop puffs update
+  // hop puffs
   hopPuffs.forEach(p => {
     p.y += 0.4;
     p.alpha -= 0.03;
@@ -517,9 +576,10 @@ function draw() {
     shakeTimer--;
   }
 
-  // sky gradient
+  // smoother single-night sky (no obvious band)
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, "#0a1633");
+  grad.addColorStop(0.6, "#050818");
   grad.addColorStop(1, "#02040b");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
@@ -560,10 +620,10 @@ function draw() {
   ctx.fill();
   ctx.restore();
 
-  // mountains (higher, darker)
+  // mountains (higher, darker, blended)
   if (mountainsLoaded) {
     const mh = 180;
-    const my = H * 0.52; // higher position
+    const my = H * 0.5;
     const scale = mh / mountainsImg.height;
     const mw = mountainsImg.width * scale;
 
@@ -577,11 +637,10 @@ function draw() {
     }
     ctx.restore();
 
-    // dark overlay to blend into night
     ctx.save();
     const mg = ctx.createLinearGradient(0, my, 0, my + mh);
-    mg.addColorStop(0, "rgba(0,0,0,0.1)");
-    mg.addColorStop(1, "rgba(0,0,0,0.35)");
+    mg.addColorStop(0, "rgba(0,0,0,0.08)");
+    mg.addColorStop(1, "rgba(0,0,0,0.3)");
     ctx.fillStyle = mg;
     ctx.fillRect(0, my, W, mh);
     ctx.restore();
@@ -599,9 +658,34 @@ function draw() {
   ctx.restore();
   ctx.globalAlpha = 1;
 
-  // bottom steam – image + slight vertical motion
+  // lanterns (behind obstacles)
+  ctx.save();
+  lanterns.forEach(l => {
+    const glowR = 16;
+    const glowGrad = ctx.createRadialGradient(
+      l.x, l.y, 0,
+      l.x, l.y, glowR
+    );
+    glowGrad.addColorStop(0, "rgba(255,200,130,0.7)");
+    glowGrad.addColorStop(1, "rgba(255,200,130,0)");
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(l.x, l.y, glowR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // simple lantern body
+    ctx.fillStyle = "#ffb86c";
+    ctx.fillRect(l.x - 6, l.y - 10, 12, 14);
+    ctx.fillStyle = "#c45a32";
+    ctx.fillRect(l.x - 7, l.y + 4, 14, 3);
+  });
+  ctx.restore();
+
+  // bottom steam – image + gentle vertical motion
   if (steamLoaded) {
-    const sh = 150; // medium height
+    const sh = 150;
     const baseSy = H - sh;
     const wobble = Math.sin(steamPhase) * 4;
     const sy = baseSy + wobble;
@@ -619,7 +703,7 @@ function draw() {
     }
     ctx.restore();
 
-    // top fade into mountains / sky
+    // fade top of steam into mountains/sky
     ctx.save();
     const sg = ctx.createLinearGradient(0, sy, 0, sy - 60);
     sg.addColorStop(0, "rgba(255,255,255,0.7)");
@@ -629,7 +713,7 @@ function draw() {
     ctx.restore();
   }
 
-  // hop puffs (flat ovals)
+  // hop puffs (flat steam)
   ctx.save();
   hopPuffs.forEach(p => {
     ctx.globalAlpha = p.alpha;
@@ -641,11 +725,11 @@ function draw() {
   ctx.restore();
   ctx.globalAlpha = 1;
 
-  // obstacles (bamboo)
+  // obstacles – tiled bamboo
   obstacles.forEach(o => {
     if (woodLoaded) {
-      ctx.drawImage(woodImg, o.x, 0, 40, o.top);
-      ctx.drawImage(woodImg, o.x, o.top + o.gap, 40, H - (o.top + o.gap));
+      drawBambooPillar(o.x, 0, o.top);
+      drawBambooPillar(o.x, o.top + o.gap, H - (o.top + o.gap));
     } else {
       ctx.fillStyle = "#5c3b1e";
       ctx.fillRect(o.x, 0, 40, o.top);
