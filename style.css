@@ -1,10 +1,8 @@
-/* ====== START OF style.css — PART 1 / 3 ====== */
-
 * {
   box-sizing: border-box;
 }
 
-/* Fullscreen, no scroll gap */
+/* Make page exactly one screen tall, no scroll gap */
 html, body {
   margin: 0;
   padding: 0;
@@ -23,13 +21,11 @@ body {
   align-items: center;
 }
 
-/* Buttons + links */
 button, a {
   font-family: "Handjet", sans-serif;
   font-weight: 700;
 }
 
-/* Top bar */
 #topBar {
   width: 100%;
   max-width: 520px;
@@ -39,7 +35,6 @@ button, a {
   align-items: center;
 }
 
-/* Scoreboard button */
 #scoreboardLink {
   text-decoration: none;
   background: #ffffff;
@@ -55,7 +50,6 @@ button, a {
   justify-content: center;
 }
 
-/* Player box */
 #playerBox {
   display: flex;
   align-items: center;
@@ -71,20 +65,13 @@ button, a {
   background: #ff6b8b;
   border: none;
   color: #150818;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 5px 10px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  min-height: 40px;
-  min-width: 120px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-/* Score row */
 #scoreRow {
   width: 100%;
   max-width: 520px;
@@ -94,13 +81,6 @@ button, a {
   font-weight: 700;
 }
 
-#msg {
-  text-align: center;
-  margin-bottom: 4px;
-  font-size: 0.9rem;
-}
-
-/* Canvas */
 #game {
   background: transparent;
   border-radius: 12px;
@@ -122,9 +102,10 @@ button, a {
   z-index: 50;
 }
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
-/* Player selection panel */
 #playerPanel {
   width: 90%;
   max-width: 420px;
@@ -152,10 +133,6 @@ button, a {
   color: #c5ccff;
 }
 
-/* ====== END OF style.css — PART 1 / 3 ====== */
-/* ====== START OF style.css — PART 2 / 3 ====== */
-
-/* Team buttons */
 #teamButtons {
   display: flex;
   flex-wrap: wrap;
@@ -163,7 +140,7 @@ button, a {
 }
 
 .teamBtn {
-  flex: 1 1 calc(20% - 6px);
+  flex: 1 1 calc(33% - 6px);
   min-width: 70px;
   background: #2a2c4a;
   border: none;
@@ -179,7 +156,6 @@ button, a {
   color: #150818;
 }
 
-/* Number list */
 #numberList {
   background: #0a0b1c;
   border-radius: 10px;
@@ -207,12 +183,6 @@ button, a {
   color: #050814;
 }
 
-#numberList .hint {
-  color: #9aa0d8;
-  margin: 0;
-}
-
-/* Preview + confirm */
 #selectedPreview {
   font-size: 1rem;
   margin-bottom: 6px;
@@ -233,110 +203,3 @@ button, a {
   cursor: pointer;
   font-size: 0.95rem;
 }
-
-/* Scrollbar styling (chrome/edge) */
-#numberList::-webkit-scrollbar {
-  width: 6px;
-}
-#numberList::-webkit-scrollbar-track {
-  background: #0a0b1c;
-}
-#numberList::-webkit-scrollbar-thumb {
-  background: #444a6b;
-  border-radius: 10px;
-}
-#numberList::-webkit-scrollbar-thumb:hover {
-  background: #6a72a1;
-}
-
-/* Scrollbar styling (Firefox) */
-#numberList {
-  scrollbar-width: thin;
-  scrollbar-color: #444a6b #0a0b1c;
-}
-
-/* ====== END OF style.css — PART 2 / 3 ====== */
-/* ====== START OF style.css — PART 3 / 3 ====== */
-
-/* Canvas container */
-#game {
-  background: transparent;
-  border-radius: 12px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
-  width: 100%;
-  max-width: 480px;
-  height: auto;
-  display: block;
-}
-
-/* Full-page overlay (player select / future popups) */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 50;
-}
-
-.hidden {
-  display: none;
-}
-
-/* Player panel */
-#playerPanel {
-  width: 90%;
-  max-width: 420px;
-  background: #15162a;
-  border-radius: 16px;
-  padding: 12px 14px 10px;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.8);
-}
-
-#playerPanel h2 {
-  margin: 0 0 6px;
-  text-align: center;
-  font-size: 1.3rem;
-  color: #ffd36b;
-}
-
-.section {
-  margin-top: 8px;
-}
-
-.sectionTitle {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #c5ccff;
-}
-
-/* Mobile tweaks */
-@media (max-width: 600px) {
-  #topBar {
-    padding: 4px 8px 2px;
-  }
-#scoreboardLink {
-  text-decoration: none;
-  background: #ffffff;
-  color: #050814;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 1rem;
-  min-height: 40px;
-  min-width: 120px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-  #playerBox {
-    font-size: 0.9rem;
-  }
-  #scoreRow {
-    font-size: 0.98rem;
-  }
-}
-
-/* ====== END OF style.css — COMPLETE ====== */
