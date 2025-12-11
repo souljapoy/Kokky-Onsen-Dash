@@ -1,142 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kokky's Hot Spring Hop – Scoreboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<link href="https://fonts.googleapis.com/css2?family=Handjet:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@500;700&display=swap" rel="stylesheet">
 
-<style>
-body {
-  margin: 0;
-  padding: 0;
-  background: #040720;
-  font-family: "Handjet", sans-serif;
-  color: #ffffff;
-  overflow-x: hidden;
-}
+  <title>Kokky's Hot Spring Hop – Scoreboard</title>
 
-/* Snow + stars background */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    url("stars.png") repeat,
-    url("snowfall.png") repeat;
-  opacity: 0.9;
-  z-index: -1;
-}
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      min-height: 100vh;
+      background: #05081a;
+      color: #f4f4ff;
+      font-family: "Handjet", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px 10px;
+    }
 
-.container {
-  max-width: 900px;
-  margin: 30px auto;
-  padding: 20px;
-  background: rgba(10, 12, 28, 0.85);
-  border-radius: 20px;
-  border: 2px solid rgba(255,255,255,0.2);
-}
+    .scoreboard-shell {
+      width: 100%;
+      max-width: 520px;
+      background: radial-gradient(circle at top, #101534, #05081a);
+      border-radius: 22px;
+      padding: 20px 18px 16px;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
 
-h1 {
-  text-align: center;
-  font-size: 2rem;
-  font-weight: 400; /* not bold */
-  margin-bottom: 5px;
-}
+    h1 {
+      margin: 0 0 10px;
+      text-align: center;
+      font-size: 1.9rem;
+      font-weight: 500;
+    }
 
-.sub {
-  text-align: center;
-  font-size: 1.1rem;
-  opacity: 0.85;
-}
+    p {
+      margin: 2px 0;
+      font-size: 0.95rem;
+      text-align: center;
+    }
 
-table {
-  width: 100%;
-  margin-top: 25px;
-  border-collapse: collapse;
-  font-size: 1.3rem;
-}
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.98rem;
+    }
 
-th {
-  padding: 12px;
-  background: rgba(40, 50, 90, 0.9);
-  border-bottom: 2px solid #ffffff33;
-}
+    thead th {
+      background: #283059;
+      padding: 8px 6px;
+      text-align: center;
+    }
 
-td {
-  padding: 12px;
-  text-align: center;
-  border-bottom: 1px solid #ffffff22;
-}
+    tbody td {
+      padding: 6px 6px;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
 
-.backBtn {
-  margin: 20px auto 0;
-  display: block;
-  padding: 12px 26px;
-  font-size: 1.2rem;
-  border-radius: 12px;
-  background: #ff6b8b;
-  color: #150818;
-  border: none;
-  cursor: pointer;
-  font-family: "Handjet", sans-serif;
-}
-</style>
+    tbody tr:nth-child(odd) td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    #backBtn {
+      margin: 14px auto 6px;
+      display: block;
+      background: #ff6b8b;
+      color: #150818;
+      border: none;
+      padding: 7px 22px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 1.05rem;
+      font-family: "Handjet", sans-serif;
+      font-weight: 700;
+    }
+
+    #footerNote {
+      margin-top: 4px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 600px) {
+      .scoreboard-shell {
+        padding: 16px 10px 12px;
+      }
+      h1 {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div class="scoreboard-shell">
+    <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
+    <p>Showing scores recorded on this device only.</p>
+    <p>Your scores are also saved to an overall scoreboard online.</p>
 
-<div class="container">
-  <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
-  <div class="sub">
-    Showing scores recorded on this device only.<br>
-    Your scores are also saved to an overall scoreboard online.
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>High Score</th>
+          <th>Best Rank</th>
+        </tr>
+      </thead>
+      <tbody id="scoreRows">
+        <!-- Filled by JS -->
+      </tbody>
+    </table>
+
+    <button id="backBtn">Back to Game</button>
+    <p id="footerNote">Top 15 players on this device.</p>
   </div>
 
-  <table id="scoreTable">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Player</th>
-        <th>High Score</th>
-        <th>Best Rank</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <script>
+    const RANK_TITLES = [
+      "Onsen Rookie",
+      "Steam Hopper",
+      "Onsen Ace",
+      "Steam Master",
+      "Onsen Overlord",
+      "King of the Onsen",
+      "Onsen Legend",
+      "Onsen God",
+    ];
 
-  <button class="backBtn" onclick="window.location.href='index.html'">
-    Back to Game
-  </button>
+    function getRankTitle(idx) {
+      if (idx == null) return "Onsen Rookie";
+      if (idx < 0 || idx >= RANK_TITLES.length) return RANK_TITLES[0];
+      return RANK_TITLES[idx];
+    }
 
-  <div class="sub" style="margin-top:10px;">Top 15 players on this device.</div>
-</div>
+    function loadScores() {
+      const tbody = document.getElementById("scoreRows");
+      tbody.innerHTML = "";
 
-<script>
-function loadScores() {
-  let list = JSON.parse(localStorage.getItem("scoreboard") || "[]");
+      const raw = localStorage.getItem("kokkyScores");
+      if (!raw) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.textContent = "No scores yet.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
 
-  list.sort((a,b) => b.score - a.score);
-  list = list.slice(0, 15);
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (e) {
+        console.error(e);
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.textContent = "Error reading scores.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
 
-  const tbody = document.querySelector("#scoreTable tbody");
-  tbody.innerHTML = "";
+      // sort by high score desc
+      data.sort((a, b) => (b.highScore || 0) - (a.highScore || 0));
 
-  list.forEach((entry, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${entry.id}</td>
-      <td>${entry.score}</td>
-      <td>${entry.rank}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+      const top = data.slice(0, 15);
 
-loadScores();
-</script>
+      if (top.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.textContent = "No scores yet.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
 
+      top.forEach((entry, idx) => {
+        const tr = document.createElement("tr");
+
+        const tdRank = document.createElement("td");
+        tdRank.textContent = idx + 1;
+        tr.appendChild(tdRank);
+
+        const tdPlayer = document.createElement("td");
+        tdPlayer.textContent = entry.playerId || "Unknown";
+        tr.appendChild(tdPlayer);
+
+        const tdScore = document.createElement("td");
+        tdScore.textContent = entry.highScore ?? 0;
+        tr.appendChild(tdScore);
+
+        const tdBestRank = document.createElement("td");
+        tdBestRank.textContent = getRankTitle(entry.bestRank);
+        tr.appendChild(tdBestRank);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      window.location.href = "index.html";
+    });
+
+    loadScores();
+  </script>
 </body>
 </html>
