@@ -71,11 +71,17 @@ button, a {
   background: #ff6b8b;
   border: none;
   color: #150818;
-  padding: 5px 10px;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
+  min-height: 40px;
+  min-width: 120px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Score row */
@@ -311,11 +317,20 @@ button, a {
   #topBar {
     padding: 4px 8px 2px;
   }
-  #scoreboardLink {
-    font-size: 0.9rem;
-    padding: 6px 10px;
-    min-width: 110px;
-  }
+#scoreboardLink {
+  text-decoration: none;
+  background: #ffffff;
+  color: #050814;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 1rem;
+  min-height: 40px;
+  min-width: 120px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
   #playerBox {
     font-size: 0.9rem;
   }
