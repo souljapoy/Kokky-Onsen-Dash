@@ -33,7 +33,7 @@
       position: relative;
     }
 
-    /* Stars canvas background */
+    /* Stars + snow canvases */
     #starLayer, #snowLayer {
       position: fixed;
       inset: 0;
@@ -48,9 +48,13 @@
       max-width: 520px;
       background: rgba(7, 12, 30, 0.92);
       border-radius: 18px;
-      padding: 16px 14px 14px;
+      padding: 16px 14px 16px;
       box-shadow: 0 10px 32px rgba(0, 0, 0, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: stretch;
     }
 
     h1 {
@@ -68,7 +72,7 @@
     }
 
     .subtitle:last-of-type {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     table {
@@ -101,26 +105,6 @@
       background: rgba(14, 20, 50, 0.8);
     }
 
-    tbody tr:first-child {
-      box-shadow: 0 0 0 1px rgba(255, 223, 140, 0.5);
-      position: relative;
-    }
-
-    tbody tr:first-child td {
-      color: #fff7c3;
-      font-weight: 700;
-    }
-
-    tbody tr:first-child::before {
-      content: "★ TOP SCORE";
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      top: -14px;
-      font-size: 0.75rem;
-      color: #ffeaa1;
-    }
-
     .noData {
       text-align: center;
       padding: 12px 4px;
@@ -149,6 +133,25 @@
       width: 40%;
     }
 
+    .backBtn {
+      margin-top: 6px;
+      align-self: center;
+      padding: 8px 18px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      background: #ffffff;
+      color: #050814;
+      font-weight: 700;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+
+    .backBtn:hover {
+      filter: brightness(0.95);
+      transform: translateY(1px);
+    }
+
     @media (max-width: 480px) {
       h1 {
         font-size: 1.4rem;
@@ -159,6 +162,10 @@
       table {
         font-size: 0.9rem;
       }
+      .backBtn {
+        font-size: 0.9rem;
+        padding: 7px 16px;
+      }
     }
   </style>
 </head>
@@ -168,16 +175,18 @@
   <canvas id="snowLayer"></canvas>
 
   <div id="scoreboardContainer">
-    <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
-    <p class="subtitle">Showing scores recorded on this device only.</p>
-    <p class="subtitle">Your scores are also saved to an overall scoreboard online.</p>
+    <div>
+      <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
+      <p class="subtitle">Showing scores recorded on this device only.</p>
+      <p class="subtitle">Your scores are also saved to an overall scoreboard online.</p>
+    </div>
 
     <table>
       <thead>
         <tr>
           <th class="col-rank">#</th>
           <th class="col-player">Player</th>
-          <th class="col-score">Score</th>
+          <th class="col-score">High Score</th>
           <th class="col-best">Best Rank</th>
         </tr>
       </thead>
@@ -190,6 +199,10 @@
         </tr>
       </tfoot>
     </table>
+
+    <button class="backBtn" onclick="window.location.href='index.html'">
+      Back to Game
+    </button>
   </div>
 
   <script>
@@ -225,17 +238,24 @@
         console.error("Error reading onsen_lb", e);
       }
 
-      // Normalize entries to { id, score, bestRankTitle, ts }
       const normalized = list.map((entry, idx) => {
-        const id = entry.id || entry.playerId || `P${idx + 1}`;
-        const score = Number(entry.score || 0);
-        let rankTitle = "-";
+        const id =
+          entry.id ||
+          entry.playerId ||
+          entry.player ||
+          entry.name ||
+          `Player-${idx + 1}`;
 
-        if (typeof entry.bestRankIndex === "number" && entry.bestRankIndex >= 0 && entry.bestRankIndex < RANKS.length) {
-          // If bestRankIndex stored
-          rankTitle = RANKS.slice().reverse()[entry.bestRankIndex]?.title || getRankTitleForScore(score);
+        const score = Number(entry.score || 0);
+        let rankTitle;
+
+        if (typeof entry.bestRankIndex === "number" &&
+            entry.bestRankIndex >= 0 &&
+            entry.bestRankIndex < RANKS.length) {
+          // If a rank index was stored, prefer that
+          rankTitle = RANKS.slice().reverse()[entry.bestRankIndex]?.title
+            || getRankTitleForScore(score);
         } else {
-          // Derive from score
           rankTitle = getRankTitleForScore(score);
         }
 
@@ -243,13 +263,13 @@
         return { id, score, rankTitle, ts };
       });
 
-      // Sort by score desc, then timestamp asc (older first if tie)
+      // Sort by score desc, then timestamp asc
       normalized.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return a.ts - b.ts;
       });
 
-      // Keep top 15 only
+      // Keep top 15
       return normalized.slice(0, 15);
     }
 
@@ -259,7 +279,8 @@
       const scores = loadScores();
 
       if (!scores.length) {
-        tbody.innerHTML = '<tr><td class="noData" colspan="4">No scores recorded yet.</td></tr>';
+        tbody.innerHTML =
+          '<tr><td class="noData" colspan="4">No scores recorded yet.</td></tr>';
         return;
       }
 
@@ -379,7 +400,6 @@
       requestAnimationFrame(loop);
     }
 
-    // Init everything
     renderScoreboard();
     initStarAndSnow();
   </script>
