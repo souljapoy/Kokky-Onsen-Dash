@@ -97,13 +97,14 @@ function initSnow() {
 initStars();
 initSnow();
 
-// Moon
+// Draw a static, textured moon (no jitter)
 function drawMoon() {
+  // Fixed position
   const cx = W - 90;
   const cy = 110;
   const r = 40;
 
-  // Glow
+  // Outer glow
   ctx.save();
   ctx.globalAlpha = 0.65;
   const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.8);
@@ -115,25 +116,25 @@ function drawMoon() {
   ctx.fill();
   ctx.restore();
 
-  // Body
+  // Main body (keep current warm yellow feel)
   const g = ctx.createRadialGradient(cx - 10, cy - 10, 10, cx, cy, r);
-  g.addColorStop(0, "#fff7d2");
+  g.addColorStop(0, "#fff8d8");
   g.addColorStop(0.45, "#ffe39a");
-  g.addColorStop(1, "#d2aa4d");
+  g.addColorStop(1, "#d4a54b");
 
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fill();
 
-  // Slight texture
+  // Crater texture (subtle)
   ctx.save();
-  ctx.globalAlpha = 0.18;
-  ctx.fillStyle = "#c6973c";
-  for (let i = 0; i < 12; i++) {
-    const tx = cx + (Math.random() - 0.5) * 26;
-    const ty = cy + (Math.random() - 0.5) * 26;
-    const tr = 3 + Math.random() * 5;
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = "#c6963a";
+  for (let i = 0; i < 10; i++) {
+    const tx = cx + (Math.random() - 0.5) * 22;
+    const ty = cy + (Math.random() - 0.5) * 22;
+    const tr = 3 + Math.random() * 4;
     ctx.beginPath();
     ctx.arc(tx, ty, tr, 0, Math.PI * 2);
     ctx.fill();
