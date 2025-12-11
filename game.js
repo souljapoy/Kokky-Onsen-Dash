@@ -97,49 +97,46 @@ function initSnow() {
 initStars();
 initSnow();
 
-// Draw a static, textured moon (no jitter)
 function drawMoon() {
-  // Fixed position
   const cx = W - 90;
   const cy = 110;
-  const r = 40;
+  const r = 38;
 
-  // Outer glow
+  // Glow
   ctx.save();
-  ctx.globalAlpha = 0.65;
-  const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.8);
-  glowGrad.addColorStop(0, "rgba(255, 240, 180, 0.9)");
-  glowGrad.addColorStop(1, "rgba(255, 240, 180, 0)");
-  ctx.fillStyle = glowGrad;
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2);
+  glow.addColorStop(0, "rgba(255, 240, 200, 0.9)");
+  glow.addColorStop(1, "rgba(255, 240, 200, 0)");
+  ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(cx, cy, r * 1.8, 0, Math.PI * 2);
+  ctx.arc(cx, cy, r * 2, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // Main body (keep current warm yellow feel)
-  const g = ctx.createRadialGradient(cx - 10, cy - 10, 10, cx, cy, r);
-  g.addColorStop(0, "#fff8d8");
-  g.addColorStop(0.45, "#ffe39a");
-  g.addColorStop(1, "#d4a54b");
-
-  ctx.fillStyle = g;
+  // Moon body
+  const body = ctx.createRadialGradient(cx - 10, cy - 12, 6, cx, cy, r);
+  body.addColorStop(0, "#fff3c8");
+  body.addColorStop(0.3, "#ffe2a3");
+  body.addColorStop(1, "#d9b467");
+  ctx.fillStyle = body;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fill();
 
-  // Crater texture (subtle)
-  ctx.save();
-  ctx.globalAlpha = 0.2;
-  ctx.fillStyle = "#c6963a";
-  for (let i = 0; i < 10; i++) {
-    const tx = cx + (Math.random() - 0.5) * 22;
-    const ty = cy + (Math.random() - 0.5) * 22;
-    const tr = 3 + Math.random() * 4;
+  // Stable crater marks (NO MOVING / NO RANDOM EVERY FRAME)
+  const craters = [
+    { x: -15, y: -5, size: 5 },
+    { x: 8, y: -10, size: 4 },
+    { x: 12, y: 6, size: 3 },
+    { x: -5, y: 14, size: 4 },
+  ];
+
+  ctx.fillStyle = "rgba(180,150,70,0.28)";
+  craters.forEach(c => {
     ctx.beginPath();
-    ctx.arc(tx, ty, tr, 0, Math.PI * 2);
+    ctx.arc(cx + c.x, cy + c.y, c.size, 0, Math.PI * 2);
     ctx.fill();
-  }
-  ctx.restore();
+  });
 }
 
 // Background
