@@ -1,3 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Handjet font -->
+  <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+  <title>Kokky's Hot Spring Hop</title>
+</head>
+
 <body>
 
   <!-- TOP BAR -->
@@ -12,12 +25,14 @@
 
   <!-- SCORE ROW -->
   <div id="scoreRow">
-    <span id="score">Score: 0</span> | 
+    <span id="score">Score: 0</span> |
     <span id="best">Best: 0</span>
   </div>
 
-  <!-- CANVAS -->
-  <canvas id="game" width="480" height="720"></canvas>
+  <!-- CANVAS WRAPPER -->
+  <div id="gameWrapper">
+    <canvas id="game" width="480" height="720"></canvas>
+  </div>
 
   <!-- PLAYER SELECT OVERLAY -->
   <div id="playerOverlay" class="overlay hidden">
@@ -50,3 +65,4 @@
 
   <script src="game.js"></script>
 </body>
+</html>
