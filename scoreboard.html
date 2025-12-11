@@ -1,186 +1,387 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Kokky's Hot Spring Hop – Scoreboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Handjet font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@300;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@400;600;700&display=swap" rel="stylesheet">
+
   <style>
-    * { box-sizing: border-box; }
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      padding: 16px;
-      background: #02040b;
-      color: #f4f4ff;
-      font-family: "Handjet", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      padding: 0;
     }
-    h1 {
-      text-align: center;
-      margin: 4px 0;
-      font-size: 1.6rem;
+
+    html, body {
+      height: 100%;
     }
-    p.info {
-      text-align: center;
-      margin: 2px 0 10px;
-      font-size: 0.95rem;
-      color: #cfd2ff;
+
+    body {
+      font-family: "Handjet", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #222b4f 0%, #050b23 45%, #02030a 100%);
+      color: #f8f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 16px 8px;
+      overflow: hidden;
+      position: relative;
     }
-    table {
+
+    /* Stars canvas background */
+    #starLayer, #snowLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #scoreboardContainer {
+      position: relative;
+      z-index: 1;
       width: 100%;
       max-width: 520px;
-      margin: 0 auto;
+      background: rgba(7, 12, 30, 0.92);
+      border-radius: 18px;
+      padding: 16px 14px 14px;
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      text-align: center;
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+      color: #ced5ff;
+    }
+
+    .subtitle:last-of-type {
+      margin-bottom: 12px;
+    }
+
+    table {
+      width: 100%;
       border-collapse: collapse;
-      background: #111327;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      table-layout: fixed;
+      font-size: 0.98rem;
     }
-    thead {
-      background: #222541;
+
+    thead tr {
+      background: rgba(40, 50, 100, 0.9);
     }
+
     th, td {
-      padding: 6px 8px;
-      font-size: 0.95rem;
-      text-align: left;
+      padding: 6px 4px;
+      text-align: center;
     }
+
     th {
       font-weight: 700;
-      color: #ffd36b;
-      border-bottom: 1px solid rgba(255,255,255,0.12);
+      color: #ffeaa1;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     }
-    tr:nth-child(even) td {
-      background: #151733;
+
+    tbody tr:nth-child(odd) {
+      background: rgba(10, 16, 40, 0.8);
     }
-    tr:nth-child(odd) td {
-      background: #101228;
+
+    tbody tr:nth-child(even) {
+      background: rgba(14, 20, 50, 0.8);
     }
-    td.rankCol {
-      width: 40px;
-      text-align: center;
+
+    tbody tr:first-child {
+      box-shadow: 0 0 0 1px rgba(255, 223, 140, 0.5);
+      position: relative;
     }
-    td.scoreCol {
-      width: 70px;
-      text-align: right;
-    }
-    td.playerCol {
-      width: 120px;
-    }
-    td.bestRankCol {
-      text-align: left;
-    }
-    .backLink {
-      display: block;
-      text-align: center;
-      margin-top: 14px;
-      text-decoration: none;
-      color: #050814;
-      background: #ffffff;
-      padding: 8px 14px;
-      border-radius: 10px;
-      width: 160px;
-      margin-left: auto;
-      margin-right: auto;
+
+    tbody tr:first-child td {
+      color: #fff7c3;
       font-weight: 700;
+    }
+
+    tbody tr:first-child::before {
+      content: "★ TOP SCORE";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: -14px;
+      font-size: 0.75rem;
+      color: #ffeaa1;
+    }
+
+    .noData {
+      text-align: center;
+      padding: 12px 4px;
+      font-size: 0.95rem;
+      color: #b5bedf;
+    }
+
+    tfoot td {
+      padding-top: 8px;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #9fa7d5;
+    }
+
+    /* Column widths */
+    th.col-rank, td.col-rank {
+      width: 10%;
+    }
+    th.col-player, td.col-player {
+      width: 30%;
+    }
+    th.col-score, td.col-score {
+      width: 20%;
+    }
+    th.col-best, td.col-best {
+      width: 40%;
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.4rem;
+      }
+      .subtitle {
+        font-size: 0.8rem;
+      }
+      table {
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
-  <p class="info">Local leaderboard on this device only.</p>
-  <p class="info">Your scores are also saved to an overall scoreboard online.</p>
 
-  <table id="board">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Player</th>
-        <th>Score</th>
-        <th>Best Rank</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- filled by script -->
-    </tbody>
-  </table>
+  <canvas id="starLayer"></canvas>
+  <canvas id="snowLayer"></canvas>
 
-  <a href="index.html" class="backLink">Back to game</a>
+  <div id="scoreboardContainer">
+    <h1>Kokky's Hot Spring Hop – Scoreboard</h1>
+    <p class="subtitle">Showing scores recorded on this device only.</p>
+    <p class="subtitle">Your scores are also saved to an overall scoreboard online.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-rank">#</th>
+          <th class="col-player">Player</th>
+          <th class="col-score">Score</th>
+          <th class="col-best">Best Rank</th>
+        </tr>
+      </thead>
+      <tbody id="scoreRows">
+        <!-- Filled by JS -->
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4">Top 15 players on this device.</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 
   <script>
+    // ----- RANK LOGIC (same thresholds as game) -----
     const RANKS = [
-      { threshold: 25,  title: "Steam Hopper" },
-      { threshold: 50,  title: "Onsen Ace" },
-      { threshold: 75,  title: "Steam Master" },
-      { threshold: 100, title: "Onsen Overlord" },
-      { threshold: 250, title: "King of the Onsen" },
-      { threshold: 500, title: "Onsen Legend" },
-      { threshold: 1000, title: "Onsen God" }
+      { threshold: 1000, title: "Onsen God" },
+      { threshold: 500,  title: "Onsen Legend" },
+      { threshold: 250,  title: "King of the Onsen" },
+      { threshold: 100,  title: "Onsen Overlord" },
+      { threshold: 75,   title: "Steam Master" },
+      { threshold: 50,   title: "Onsen Ace" },
+      { threshold: 25,   title: "Steam Hopper" }
     ];
 
-    function loadBoard() {
+    function getRankTitleForScore(score) {
+      for (const r of RANKS) {
+        if (score >= r.threshold) return r.title;
+      }
+      return "-";
+    }
+
+    // ----- LOAD SCORES FROM localStorage -----
+    function loadScores() {
+      let list = [];
       try {
         const raw = localStorage.getItem("onsen_lb");
         if (!raw) return [];
-        const arr = JSON.parse(raw);
-        return Array.isArray(arr) ? arr : [];
-      } catch {
-        return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          list = parsed;
+        }
+      } catch (e) {
+        console.error("Error reading onsen_lb", e);
       }
+
+      // Normalize entries to { id, score, bestRankTitle, ts }
+      const normalized = list.map((entry, idx) => {
+        const id = entry.id || entry.playerId || `P${idx + 1}`;
+        const score = Number(entry.score || 0);
+        let rankTitle = "-";
+
+        if (typeof entry.bestRankIndex === "number" && entry.bestRankIndex >= 0 && entry.bestRankIndex < RANKS.length) {
+          // If bestRankIndex stored
+          rankTitle = RANKS.slice().reverse()[entry.bestRankIndex]?.title || getRankTitleForScore(score);
+        } else {
+          // Derive from score
+          rankTitle = getRankTitleForScore(score);
+        }
+
+        const ts = entry.ts || 0;
+        return { id, score, rankTitle, ts };
+      });
+
+      // Sort by score desc, then timestamp asc (older first if tie)
+      normalized.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.ts - b.ts;
+      });
+
+      // Keep top 15 only
+      return normalized.slice(0, 15);
     }
 
-    function bestRankTitle(index) {
-      if (typeof index !== "number" || index < 0) return "-";
-      if (index >= RANKS.length) index = RANKS.length - 1;
-      return RANKS[index].title;
-    }
+    // ----- RENDER TABLE -----
+    function renderScoreboard() {
+      const tbody = document.getElementById("scoreRows");
+      const scores = loadScores();
 
-    function displayBoard() {
-      const tbody = document.querySelector("#board tbody");
-      tbody.innerHTML = "";
-      const list = loadBoard();
-
-      if (!list.length) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 4;
-        td.textContent = "No scores yet. Go hop!";
-        td.style.textAlign = "center";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
+      if (!scores.length) {
+        tbody.innerHTML = '<tr><td class="noData" colspan="4">No scores recorded yet.</td></tr>';
         return;
       }
 
-      list.sort((a,b) => b.score - a.score || a.ts - b.ts);
-
-      list.forEach((entry, idx) => {
+      tbody.innerHTML = "";
+      scores.forEach((row, index) => {
         const tr = document.createElement("tr");
 
         const tdRank = document.createElement("td");
-        tdRank.className = "rankCol";
-        tdRank.textContent = idx + 1;
-        tr.appendChild(tdRank);
+        tdRank.className = "col-rank";
+        tdRank.textContent = index + 1;
 
         const tdPlayer = document.createElement("td");
-        tdPlayer.className = "playerCol";
-        tdPlayer.textContent = entry.id === "0" ? "Guest" : entry.id;
-        tr.appendChild(tdPlayer);
+        tdPlayer.className = "col-player";
+        tdPlayer.textContent = row.id;
 
         const tdScore = document.createElement("td");
-        tdScore.className = "scoreCol";
-        tdScore.textContent = entry.score;
-        tr.appendChild(tdScore);
+        tdScore.className = "col-score";
+        tdScore.textContent = row.score;
 
-        const tdBestRank = document.createElement("td");
-        tdBestRank.className = "bestRankCol";
-        tdBestRank.textContent = bestRankTitle(entry.bestRankIndex);
-        tr.appendChild(tdBestRank);
+        const tdBest = document.createElement("td");
+        tdBest.className = "col-best";
+        tdBest.textContent = row.rankTitle;
+
+        tr.appendChild(tdRank);
+        tr.appendChild(tdPlayer);
+        tr.appendChild(tdScore);
+        tr.appendChild(tdBest);
 
         tbody.appendChild(tr);
       });
     }
 
-    displayBoard();
+    // ----- STARS + SNOW BACKGROUND -----
+    function initStarAndSnow() {
+      const starCanvas = document.getElementById("starLayer");
+      const snowCanvas = document.getElementById("snowLayer");
+      const sctx = starCanvas.getContext("2d");
+      const nctx = snowCanvas.getContext("2d");
+
+      function resize() {
+        starCanvas.width = window.innerWidth;
+        starCanvas.height = window.innerHeight;
+        snowCanvas.width = window.innerWidth;
+        snowCanvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      // Stars
+      const stars = [];
+      const starCount = 70;
+      for (let i = 0; i < starCount; i++) {
+        const x = Math.random() * starCanvas.width;
+        const y = Math.random() * (starCanvas.height * 0.5);
+        const size = 1 + Math.random() * 2;
+        const yellow = Math.random() < 0.7;
+        const color = yellow ? "rgba(255,226,122,1)" : "rgba(247,247,255,1)";
+        const phase = Math.random() * Math.PI * 2;
+        stars.push({ x, y, size, color, phase });
+      }
+
+      // Snow
+      const flakes = [];
+      const flakeCount = 50;
+      for (let i = 0; i < flakeCount; i++) {
+        flakes.push({
+          x: Math.random() * snowCanvas.width,
+          y: Math.random() * snowCanvas.height,
+          r: 1 + Math.random() * 2,
+          vy: 0.4 + Math.random() * 0.8,
+          drift: (Math.random() - 0.5) * 0.4
+        });
+      }
+
+      function drawStars(t) {
+        sctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+        for (const star of stars) {
+          const twinkle = 0.5 + 0.5 * Math.sin(t / 900 + star.phase);
+          sctx.globalAlpha = 0.4 + 0.4 * twinkle;
+          sctx.fillStyle = star.color;
+          sctx.fillRect(star.x, star.y, star.size, star.size);
+        }
+        sctx.globalAlpha = 1;
+      }
+
+      function drawSnow() {
+        nctx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+        for (const f of flakes) {
+          f.y += f.vy;
+          f.x += f.drift;
+
+          if (f.y > snowCanvas.height) {
+            f.y = -10;
+            f.x = Math.random() * snowCanvas.width;
+          }
+          if (f.x < -10) f.x = snowCanvas.width + 10;
+          if (f.x > snowCanvas.width + 10) f.x = -10;
+
+          let alpha = 0.9;
+          if (f.y > snowCanvas.height * 0.8) {
+            const t = (snowCanvas.height - f.y) / (snowCanvas.height * 0.2);
+            alpha = Math.max(0, t) * 0.9;
+          }
+
+          nctx.fillStyle = `rgba(240,240,255,${alpha.toFixed(2)})`;
+          nctx.beginPath();
+          nctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          nctx.fill();
+        }
+      }
+
+      function loop(t) {
+        drawStars(t || 0);
+        drawSnow();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    // Init everything
+    renderScoreboard();
+    initStarAndSnow();
   </script>
 </body>
 </html>
