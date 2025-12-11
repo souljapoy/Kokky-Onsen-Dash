@@ -1,798 +1,328 @@
-// Kokky's Hot Spring Hop – polished visual + physics build
-// No carrots, no sound. Lanterns + snow + moon + stars + steam.
+// ====== game.js — CHUNK 1 / 6 ======
 
+// CANVAS SETUP
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const scoreEl = document.getElementById("score");
-const bestEl  = document.getElementById("best");
-const msgEl   = document.getElementById("msg");
+let W = canvas.width;
+let H = canvas.height;
 
-const playerOverlay = document.getElementById("playerOverlay");
-const playerIdLabel = document.getElementById("playerIdLabel");
-const changePlayerBtn = document.getElementById("changePlayerBtn");
+// PLAYER DATA
+let playerId = localStorage.getItem("playerId") || "-";
+document.getElementById("playerIdLabel").textContent = "Player: " + playerId;
 
-const teamButtonsContainer = document.getElementById("teamButtons");
-const numberList = document.getElementById("numberList");
-const selectedPreview = document.getElementById("selectedPreview");
-const confirmPlayerBtn = document.getElementById("confirmPlayerBtn");
-const cancelPlayerBtn = document.getElementById("cancelPlayerBtn");
+// UI ELEMENTS
+const msg = document.getElementById("msg");
+const scoreText = document.getElementById("scoreText");
 
-const W = canvas.width;
-const H = canvas.height;
+// GAME STATE
+let score = 0;
+let bestScore = Number(localStorage.getItem("bestScore") || 0);
 
-// ---- Teams / players ----
+let gameRunning = false;
+let obstacles = [];
+let spawnTimer = 0;
 
-const TEAM_CONFIG = {
-  W: { label: "White", numbers: [5,8,9,18,19,22,28,29,30,34], alts: ["A","B"] },
-  R: { label: "Red",   numbers: [1,4,6,7,11,13,20,21,27,31,40], alts: ["A","B"] },
-  B: { label: "Blue",  numbers: [2,3,15,16,17,25,32,33,38,41], alts: ["A","B"] },
-  G: { label: "Green", numbers: [10,12,14,23,24,26,35,36,37,39], alts: ["A","B"] },
-  Guest: { label: "Guest", numbers: [0], alts: [] }
+let gravity = 0.45;
+let jumpPower = -7.5;
+let speed = 3.2;
+
+let frame = 0;
+
+// PLAYER (KOKKY)
+let player = {
+  x: 120,
+  y: H / 2,
+  w: 60,
+  h: 60,
+  vel: 0
 };
 
-const RANKS = [
-  { threshold: 25,  title: "Steam Hopper" },
-  { threshold: 50,  title: "Onsen Ace" },
-  { threshold: 75,  title: "Steam Master" },
-  { threshold: 100, title: "Onsen Overlord" },
-  { threshold: 250, title: "King of the Onsen" },
-  { threshold: 500, title: "Onsen Legend" },
-  { threshold: 1000, title: "Onsen God" }
-];
-
-// ---- Assets ----
-
-const kokkyImg = new Image();
-kokkyImg.src = "kokky.png";
-let kokkyLoaded = false;
-kokkyImg.onload = () => { kokkyLoaded = true; };
-
-const mountainsImg = new Image();
-mountainsImg.src = "mountains.png";
-let mountainsLoaded = false;
-mountainsImg.onload = () => { mountainsLoaded = true; };
-
-const woodImg = new Image();
-woodImg.src = "wood.png";
-let woodLoaded = false;
-woodImg.onload = () => { woodLoaded = true; };
+// LOAD IMAGES
+const bgMountains = new Image();
+bgMountains.src = "mountains.png";
 
 const steamImg = new Image();
 steamImg.src = "steam.png";
-let steamLoaded = false;
-steamImg.onload = () => { steamLoaded = true; };
 
-// ---- Game state ----
+const woodImg = new Image();
+woodImg.src = "wood.png";
 
-let currentPlayerId = localStorage.getItem("onsen_player_id") || null;
+// Optional moon & snow restored
+let moonColor = "#ffe28a";
 
-// Player
-let player = { x: 120, y: H/2, vy: 0, r: 21 }; // slightly smaller radius
-const gravity = 0.45;
-const hopPower = -8.8;
+function drawMoon() {
+  ctx.fillStyle = moonColor;
+  ctx.beginPath();
+  ctx.arc(W - 90, 110, 40, 0, Math.PI * 2);
+  ctx.fill();
+}
+// ====== game.js — CHUNK 2 / 6 ======
 
-// Core state
-let running = false;
-let obstacles = [];
-let score = 0;
-let obstaclesPassed = 0;
-let spawnTimer = 0;
-let lastGapCenter = H / 2;
+// Jump steam particles
+let steamPuffs = [];
 
-// Parallax
-let mountainsOffset = 0;
-let steamOffset = 0;
-let steamPhase = 0;
-
-// Effects
-let hopPuffs = [];
-let stars = [];
-let snowflakes = [];
-let lanterns = [];
-
-// Rank popup
-let nextRankIndex = 0;
-let rankPopupTimer = 0;
-let rankPopupTitle = "";
-
-// Screen shake
-let shakeTimer = 0;
-
-// Gap / speed
-const gapSize = 150;
-const baseSpeed = 3;
-const boostedSpeed = 3.8;
-
-// ---- Init ----
-
-initStars();
-initSnow();
-initLanterns();
-updatePlayerLabel();
-updateBestFromLeaderboard();
-initControls();
-
-// ---- Player overlay ----
-
-let selectedTeamKey = null;
-let selectedNumberCode = null;
-
-function openPlayerOverlay() {
-  selectedTeamKey = null;
-  selectedNumberCode = null;
-  confirmPlayerBtn.disabled = true;
-  selectedPreview.textContent = "Player: -";
-  numberList.innerHTML = '<p class="hint">Select a team first.</p>';
-
-  Array.from(document.querySelectorAll(".teamBtn")).forEach(btn => {
-    btn.classList.remove("selected");
+function addJumpSteam() {
+  steamPuffs.push({
+    x: player.x,
+    y: player.y + player.h / 2,
+    alpha: 1,
+    size: 26
   });
-
-  playerOverlay.classList.remove("hidden");
 }
 
-function closePlayerOverlay(committed) {
-  playerOverlay.classList.add("hidden");
-  if (!committed && !currentPlayerId) {
-    setTimeout(openPlayerOverlay, 10);
+function updateSteam() {
+  for (let p of steamPuffs) {
+    p.y += 1.2;
+    p.alpha -= 0.03;
+  }
+  steamPuffs = steamPuffs.filter(p => p.alpha > 0);
+}
+
+function drawSteam() {
+  for (let p of steamPuffs) {
+    ctx.fillStyle = "rgba(255,255,255," + p.alpha + ")";
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.size, p.size * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
-teamButtonsContainer.addEventListener("click", e => {
-  const btn = e.target.closest(".teamBtn");
-  if (!btn) return;
-  const teamKey = btn.dataset.team;
-  selectedTeamKey = teamKey;
-  selectedNumberCode = null;
-  confirmPlayerBtn.disabled = true;
-  selectedPreview.textContent = "Player: -";
+// INPUT
+function jump() {
+  if (!gameRunning) return startGame();
+  player.vel = jumpPower;
+  addJumpSteam();
+}
 
-  Array.from(teamButtonsContainer.querySelectorAll(".teamBtn")).forEach(b => {
-    b.classList.toggle("selected", b === btn);
-  });
-
-  buildNumberList(teamKey);
+window.addEventListener("mousedown", jump);
+window.addEventListener("touchstart", jump);
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    jump();
+  }
 });
+// ====== game.js — CHUNK 3 / 6 ======
 
-function buildNumberList(teamKey) {
-  const cfg = TEAM_CONFIG[teamKey];
-  numberList.innerHTML = "";
-  if (!cfg) {
-    numberList.innerHTML = '<p class="hint">Unknown team.</p>';
-    return;
-  }
+function resetGame() {
+  player.y = H / 2;
+  player.vel = 0;
 
-  if (teamKey === "Guest") {
-    const btn = document.createElement("button");
-    btn.textContent = "0 – Guest";
-    btn.dataset.code = "0";
-    btn.addEventListener("click", () => selectNumberCode("0", btn));
-    numberList.appendChild(btn);
-    return;
-  }
+  score = 0;
+  spawnTimer = 0;
+  speed = 3.2;
 
-  const allCodes = [...cfg.numbers.map(n => String(n)), ...cfg.alts];
-  allCodes.forEach(code => {
-    const btn = document.createElement("button");
-    btn.textContent = (code === "A" || code === "B") ? `${code} (ALT)` : code;
-    btn.dataset.code = code;
-    btn.addEventListener("click", () => selectNumberCode(code, btn));
-    numberList.appendChild(btn);
-  });
+  obstacles = [];
+
+  msg.textContent = "";
+  scoreText.textContent = `Score: 0 | Best: ${bestScore}`;
 }
-
-function selectNumberCode(code, btn) {
-  selectedNumberCode = code;
-  Array.from(numberList.querySelectorAll("button")).forEach(b => {
-    b.classList.remove("selected");
-  });
-  btn.classList.add("selected");
-  updatePreviewAndButton();
-}
-
-function updatePreviewAndButton() {
-  if (!selectedTeamKey || !selectedNumberCode) {
-    confirmPlayerBtn.disabled = true;
-    selectedPreview.textContent = "Player: -";
-    return;
-  }
-  let idStr;
-  if (selectedTeamKey === "Guest") idStr = "0";
-  else idStr = `${selectedTeamKey}-${selectedNumberCode}`;
-  selectedPreview.textContent = `Player: ${idStr}`;
-  confirmPlayerBtn.disabled = false;
-}
-
-confirmPlayerBtn.addEventListener("click", () => {
-  if (!selectedTeamKey || !selectedNumberCode) return;
-  let idStr;
-  if (selectedTeamKey === "Guest") idStr = "0";
-  else idStr = `${selectedTeamKey}-${selectedNumberCode}`;
-  currentPlayerId = idStr;
-  localStorage.setItem("onsen_player_id", currentPlayerId);
-  updatePlayerLabel();
-  updateBestFromLeaderboard();
-  closePlayerOverlay(true);
-});
-
-cancelPlayerBtn.addEventListener("click", () => {
-  closePlayerOverlay(false);
-});
-
-changePlayerBtn.addEventListener("click", () => {
-  openPlayerOverlay();
-});
-
-// ---- Controls ----
-
-function initControls() {
-  window.addEventListener("keydown", e => {
-    if (e.code === "Space") {
-      if (!running) startGame();
-      else hop();
-      e.preventDefault();
-    }
-  });
-  canvas.addEventListener("pointerdown", () => {
-    if (!running) startGame();
-    else hop();
-  });
-}
-
-// ---- Helpers ----
-
-function updatePlayerLabel() {
-  playerIdLabel.textContent = currentPlayerId ? currentPlayerId : "Not set";
-}
-
-function loadBoard() {
-  try {
-    const raw = localStorage.getItem("onsen_lb");
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveBoard(list) {
-  localStorage.setItem("onsen_lb", JSON.stringify(list));
-}
-
-function updateBestFromLeaderboard() {
-  if (!currentPlayerId) {
-    bestEl.textContent = "0";
-    return;
-  }
-  const list = loadBoard();
-  const entry = list.find(e => e.id === currentPlayerId);
-  bestEl.textContent = entry ? entry.score : 0;
-}
-
-function getRankIndexForObstacles(count) {
-  let idx = -1;
-  for (let i = 0; i < RANKS.length; i++) {
-    if (count >= RANKS[i].threshold) idx = i;
-  }
-  return idx;
-}
-
-function initStars() {
-  stars = [];
-  for (let i = 0; i < 60; i++) {
-    stars.push({
-      x: Math.random() * W,
-      y: Math.random() * H * 0.5,
-      phase: Math.random() * Math.PI * 2,
-      warm: Math.random() < 0.3
-    });
-  }
-}
-
-function initSnow() {
-  snowflakes = [];
-  for (let i = 0; i < 40; i++) {
-    snowflakes.push({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vy: 0.4 + Math.random() * 0.6,
-      size: 1 + Math.random() * 2,
-      alpha: 0.3 + Math.random() * 0.3
-    });
-  }
-}
-
-function initLanterns() {
-  lanterns = [];
-  const count = 8;
-  for (let i = 0; i < count; i++) {
-    lanterns.push({
-      x: i * 120 + 60,
-      y: H * 0.55 + Math.random() * 80,
-      phase: Math.random() * Math.PI * 2
-    });
-  }
-}
-
-// ---- Game control ----
 
 function startGame() {
-  if (!currentPlayerId) {
-    openPlayerOverlay();
-    return;
-  }
-  running = true;
-  score = 0;
-  obstaclesPassed = 0;
-  scoreEl.textContent = score;
-  msgEl.textContent = "";
-  obstacles = [];
-  hopPuffs = [];
-  player.y = H / 2;
-  player.vy = 0;
-  spawnTimer = 0;
-  lastGapCenter = H / 2;
-  nextRankIndex = 0;
-  rankPopupTimer = 0;
-  rankPopupTitle = "";
+  resetGame();
+  gameRunning = true;
 }
 
-function hop() {
-  if (!running) return;
-  player.vy = hopPower;
-
-  // flat hop steam puff (more visible)
-  hopPuffs.push({
-    x: player.x,
-    y: player.y + player.r * 0.7,
-    rx: 10,
-    ry: 5,
-    alpha: 0.7
-  });
-}
-
-function endGame() {
-  running = false;
-  shakeTimer = 10;
-
-  if (!currentPlayerId || score <= 0) {
-    msgEl.textContent = `Score: ${score}`;
-    return;
-  }
-
-  const runRankIndex = getRankIndexForObstacles(obstaclesPassed);
-  let list = loadBoard();
-  let entry = list.find(e => e.id === currentPlayerId);
-  const prevScore = entry ? entry.score : 0;
-  const prevRankIndex = entry && typeof entry.bestRankIndex === "number"
-    ? entry.bestRankIndex
-    : -1;
-
-  const isBetterScore = score > prevScore;
-  const isBetterRank = runRankIndex > prevRankIndex;
-
-  if (!entry) {
-    entry = {
-      id: currentPlayerId,
-      score: score,
-      ts: Date.now(),
-      bestRankIndex: runRankIndex
-    };
-    list.push(entry);
-  } else {
-    if (isBetterScore) {
-      entry.score = score;
-      entry.ts = Date.now();
-    }
-    if (isBetterRank) {
-      entry.bestRankIndex = runRankIndex;
-      if (!isBetterScore) entry.ts = Date.now();
-    }
-  }
-
-  list.sort((a, b) => b.score - a.score || a.ts - b.ts);
-  if (list.length > 50) list = list.slice(0, 50);
-  saveBoard(list);
-
-  msgEl.textContent = isBetterScore
-    ? `New Best! ${score}`
-    : `Score: ${score} (Best: ${prevScore})`;
-
-  updateBestFromLeaderboard();
-}
-
-function checkRankUp() {
-  if (nextRankIndex >= RANKS.length) return;
-  const nextRank = RANKS[nextRankIndex];
-  if (obstaclesPassed >= nextRank.threshold) {
-    rankPopupTitle = nextRank.title;
-    rankPopupTimer = 150;
-    nextRankIndex++;
-  }
-}
-
-// ---- Obstacles ----
-
+// Make obstacles similar to Flappy Bird
 function addObstacle() {
-  const minCenter = 140;
-  const maxCenter = H - 200;
-  const maxDelta = 120;
+  let gap = 165; // restored larger gap
+  let offset = (Math.random() * 220) - 110;
 
-  let center = lastGapCenter + (Math.random() * 2 - 1) * maxDelta;
+  let center = H / 2 + offset;
+  let topHeight = center - gap / 2;
+  let bottomY = center + gap / 2;
 
-  // Occasionally force extremes to create real challenge
-  if (Math.random() < 0.15) {
-    center = Math.random() < 0.5 ? minCenter : maxCenter;
-  }
-
-  center = Math.max(minCenter, Math.min(maxCenter, center));
-  lastGapCenter = center;
-
-  const top = center - gapSize / 2;
   obstacles.push({
-    x: W + 40,
-    top,
-    gap: gapSize,
-    passed: false
+    x: W + 20,
+    top: topHeight,
+    bottom: bottomY,
+    w: 90
   });
 }
 
-// collision using slightly lower center (ears forgiven a bit)
-function collideObstacle(o) {
-  const colY = player.y + 4;
-  const r = player.r;
-
-  if (player.x + r > o.x && player.x - r < o.x + 40) {
-    if (colY - r < o.top || colY + r > o.top + o.gap) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// ---- Bamboo draw (tiled, not stretched) ----
-
-function drawBambooPillar(x, y, height) {
-  if (!woodLoaded || height <= 0) return;
-
-  const targetW = 40;
-  const scale = targetW / woodImg.width;
-  const segH = woodImg.height * scale;
-
-  let remaining = height;
-  let drawY = y;
-
-  while (remaining > 0) {
-    const h = Math.min(segH, remaining);
-    const srcH = (h / segH) * woodImg.height;
-
-    ctx.drawImage(
-      woodImg,
-      0, 0, woodImg.width, srcH,
-      x, drawY, targetW, h
-    );
-
-    drawY += h;
-    remaining -= h;
-  }
-}
-
-// ---- Update ----
-
-function updateGame() {
-  if (!running) return;
-
-  player.vy += gravity;
-  player.y += player.vy;
-
-  if (player.y + player.r > H || player.y - player.r < 0) {
-    endGame();
-    return;
-  }
-
-  const speed = obstaclesPassed >= 60 ? boostedSpeed : baseSpeed;
-
-  mountainsOffset -= speed * 0.25;
-  if (mountainsOffset <= -W) mountainsOffset += W;
-
-  steamOffset -= speed * 0.5;
-  if (steamOffset <= -W) steamOffset += W;
-
-  steamPhase += 0.02;
-
-  // snow fall
-  snowflakes.forEach(s => {
-    s.y += s.vy;
-    if (s.y > H * 0.85) s.alpha -= 0.02;
-    if (s.y > H || s.alpha <= 0) {
-      s.x = Math.random() * W;
-      s.y = -10;
-      s.vy = 0.4 + Math.random() * 0.6;
-      s.size = 1 + Math.random() * 2;
-      s.alpha = 0.3 + Math.random() * 0.3;
-    }
-  });
-
-  // lanterns scroll (behind obstacles)
-  lanterns.forEach(l => {
-    l.x -= speed * 0.6;
-    if (l.x < -40) {
-      l.x += W + 160;
-      l.y = H * 0.55 + Math.random() * 80;
-    }
-  });
-
-  // obstacle spawn
+function updateObstacles() {
   spawnTimer++;
-  if (spawnTimer > 80) {
+  if (spawnTimer > 90) {
     spawnTimer = 0;
     addObstacle();
   }
 
-  // obstacles move / scoring
-  obstacles.forEach(o => {
+  for (let o of obstacles) {
     o.x -= speed;
-    if (!o.passed && o.x + 40 < player.x) {
-      o.passed = true;
-      obstaclesPassed++;
-      score++;
-      scoreEl.textContent = score;
-      checkRankUp();
-    }
-  });
-
-  for (const o of obstacles) {
-    if (collideObstacle(o)) {
-      endGame();
-      return; // keep obstacles; don't remove on hit
-    }
   }
 
-  obstacles = obstacles.filter(o => o.x > -60);
-
-  // hop puffs
-  hopPuffs.forEach(p => {
-    p.y += 0.4;
-    p.alpha -= 0.03;
-    p.rx += 0.1;
-    p.ry += 0.05;
-  });
-  hopPuffs = hopPuffs.filter(p => p.alpha > 0);
-
-  if (rankPopupTimer > 0) rankPopupTimer--;
+  obstacles = obstacles.filter(o => o.x + o.w > 0);
 }
 
-// ---- Draw ----
-
-function draw() {
-  ctx.save();
-
-  if (shakeTimer > 0) {
-    const dx = (Math.random() * 4 - 2);
-    const dy = (Math.random() * 4 - 2);
-    ctx.translate(dx, dy);
-    shakeTimer--;
+function drawObstacles() {
+  for (let o of obstacles) {
+    ctx.drawImage(woodImg, o.x, 0, o.w, o.top);
+    ctx.drawImage(woodImg, o.x, o.bottom, o.w, H - o.bottom);
   }
+}
+// ====== game.js — CHUNK 4 / 6 ======
 
-  // smoother single-night sky (no obvious band)
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, "#0a1633");
-  grad.addColorStop(0.6, "#050818");
-  grad.addColorStop(1, "#02040b");
-  ctx.fillStyle = grad;
+function checkCollision() {
+  for (let o of obstacles) {
+    if (player.x < o.x + o.w &&
+        player.x + player.w > o.x &&
+        (player.y < o.top || player.y + player.h > o.bottom)) {
+      gameOver();
+      return;
+    }
+  }
+}
+
+function drawBackground() {
+  // Dark sky
+  ctx.fillStyle = "#0d152b";
   ctx.fillRect(0, 0, W, H);
 
-  // stars
-  ctx.save();
-  const t = performance.now() / 400;
-  stars.forEach(s => {
-    const tw = 0.5 + 0.5 * Math.sin(t + s.phase);
-    ctx.globalAlpha = 0.25 + 0.5 * tw;
-    ctx.fillStyle = s.warm ? "#f6e69c" : "#e8f0ff";
-    ctx.fillRect(s.x, s.y, 2, 2);
-  });
-  ctx.restore();
-
-  // moon
-  ctx.save();
-  const moonX = W - 80;
-  const moonY = 80;
-  const moonR = 26;
-  const moonGrad = ctx.createRadialGradient(
-    moonX - 8, moonY - 8, 4,
-    moonX, moonY, moonR + 6
-  );
-  moonGrad.addColorStop(0, "#fff9d9");
-  moonGrad.addColorStop(1, "#bba86a");
-  ctx.fillStyle = moonGrad;
-  ctx.beginPath();
-  ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = "#d8c78a";
-  ctx.beginPath();
-  ctx.arc(moonX - 8, moonY - 6, 6, 0, Math.PI * 2);
-  ctx.arc(moonX + 5, moonY + 4, 4, 0, Math.PI * 2);
-  ctx.arc(moonX + 10, moonY - 10, 3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // mountains (higher, darker, blended)
-  if (mountainsLoaded) {
-    const mh = 180;
-    const my = H * 0.5;
-    const scale = mh / mountainsImg.height;
-    const mw = mountainsImg.width * scale;
-
-    let x = mountainsOffset % mw;
-    if (x > 0) x -= mw;
-
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    for (; x < W; x += mw) {
-      ctx.drawImage(mountainsImg, x, my, mw, mh);
-    }
-    ctx.restore();
-
-    ctx.save();
-    const mg = ctx.createLinearGradient(0, my, 0, my + mh);
-    mg.addColorStop(0, "rgba(0,0,0,0.08)");
-    mg.addColorStop(1, "rgba(0,0,0,0.3)");
-    ctx.fillStyle = mg;
-    ctx.fillRect(0, my, W, mh);
-    ctx.restore();
+  // Stars
+  ctx.fillStyle = "rgba(255,255,200,0.8)";
+  for (let i = 0; i < 60; i++) {
+    let x = (i * 83 + frame * 0.2) % W;
+    let y = (i * 53) % (H * 0.4);
+    ctx.fillRect(x, y, 2, 2);
   }
 
-  // snow behind everything
-  ctx.save();
-  snowflakes.forEach(s => {
-    ctx.globalAlpha = s.alpha;
-    ctx.fillStyle = "#e6f0ff";
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  ctx.restore();
-  ctx.globalAlpha = 1;
+  drawMoon();
 
-  // lanterns (behind obstacles)
-  ctx.save();
-  lanterns.forEach(l => {
-    const glowR = 16;
-    const glowGrad = ctx.createRadialGradient(
-      l.x, l.y, 0,
-      l.x, l.y, glowR
-    );
-    glowGrad.addColorStop(0, "rgba(255,200,130,0.7)");
-    glowGrad.addColorStop(1, "rgba(255,200,130,0)");
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = glowGrad;
-    ctx.beginPath();
-    ctx.arc(l.x, l.y, glowR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+  // Mountains (raise higher)
+  let mountainHeight = 260;
+  ctx.drawImage(bgMountains, 0, H - mountainHeight - 160, W, mountainHeight);
 
-    // simple lantern body
-    ctx.fillStyle = "#ffb86c";
-    ctx.fillRect(l.x - 6, l.y - 10, 12, 14);
-    ctx.fillStyle = "#c45a32";
-    ctx.fillRect(l.x - 7, l.y + 4, 14, 3);
-  });
-  ctx.restore();
+  // Steam bottom layer
+  ctx.drawImage(steamImg, 0, H - 140, W, 140);
+}
+// ====== game.js — CHUNK 5 / 6 ======
 
-  // bottom steam – image + gentle vertical motion
-  if (steamLoaded) {
-    const sh = 150;
-    const baseSy = H - sh;
-    const wobble = Math.sin(steamPhase) * 4;
-    const sy = baseSy + wobble;
+function gameOver() {
+  gameRunning = false;
 
-    const scale = sh / steamImg.height;
-    const sw = steamImg.width * scale;
-
-    let x = steamOffset % sw;
-    if (x > 0) x -= sw;
-
-    ctx.save();
-    ctx.globalAlpha = 0.96;
-    for (; x < W; x += sw) {
-      ctx.drawImage(steamImg, x, sy, sw, sh);
-    }
-    ctx.restore();
-
-    // fade top of steam into mountains/sky
-    ctx.save();
-    const sg = ctx.createLinearGradient(0, sy, 0, sy - 60);
-    sg.addColorStop(0, "rgba(255,255,255,0.7)");
-    sg.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = sg;
-    ctx.fillRect(0, sy - 60, W, 60);
-    ctx.restore();
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("bestScore", bestScore);
   }
 
-  // hop puffs (flat steam)
-  ctx.save();
-  hopPuffs.forEach(p => {
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = "#f7f7ff";
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  ctx.restore();
-  ctx.globalAlpha = 1;
-
-  // obstacles – tiled bamboo
-  obstacles.forEach(o => {
-    if (woodLoaded) {
-      drawBambooPillar(o.x, 0, o.top);
-      drawBambooPillar(o.x, o.top + o.gap, H - (o.top + o.gap));
-    } else {
-      ctx.fillStyle = "#5c3b1e";
-      ctx.fillRect(o.x, 0, 40, o.top);
-      ctx.fillRect(o.x, o.top + o.gap, 40, H - (o.top + o.gap));
-    }
-  });
-
-  // player
-  if (kokkyLoaded) {
-    const size = 56;
-    ctx.drawImage(kokkyImg, player.x - size / 2, player.y - size / 2, size, size);
-  } else {
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // rank popup
-  if (rankPopupTimer > 0) {
-    const alpha = rankPopupTimer > 30 ? 1 : rankPopupTimer / 30;
-    ctx.globalAlpha = alpha;
-    const boxW = 280;
-    const boxH = 70;
-    const bx = (W - boxW) / 2;
-    const by = 100;
-
-    const rgrad = ctx.createLinearGradient(bx, by, bx + boxW, by + boxH);
-    rgrad.addColorStop(0, "#ffeb9c");
-    rgrad.addColorStop(1, "#f6c14d");
-    ctx.fillStyle = rgrad;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(bx, by, boxW, boxH, 12);
-    else ctx.rect(bx, by, boxW, boxH);
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(255,255,255,0.7)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = "#7a4b00";
-    ctx.font = "18px 'Handjet'";
-    ctx.textAlign = "center";
-    ctx.fillText("Rank Up!", W / 2, by + 30);
-
-    ctx.font = "16px 'Handjet'";
-    ctx.fillText(rankPopupTitle, W / 2, by + 50);
-
-    ctx.globalAlpha = 1;
-  }
-
-  ctx.restore();
+  msg.textContent = "Game Over!";
 }
 
-// ---- Main loop ----
+function updatePlayer() {
+  player.vel += gravity;
+  player.y += player.vel;
 
-function loop() {
-  updateGame();
-  draw();
-  requestAnimationFrame(loop);
+  if (player.y < 0) player.y = 0;
+  if (player.y + player.h > H) player.y = H - player.h;
 }
-loop();
 
-if (!currentPlayerId) {
-  openPlayerOverlay();
+function drawPlayer() {
+  ctx.fillStyle = "white";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+}
+
+function gameLoop() {
+  frame++;
+
+  drawBackground();
+
+  if (gameRunning) {
+    updatePlayer();
+    updateObstacles();
+    updateSteam();
+    checkCollision();
+
+    // Score
+    for (let o of obstacles) {
+      if (!o.passed && o.x + o.w < player.x) {
+        o.passed = true;
+        score++;
+        scoreText.textContent = `Score: ${score} | Best: ${bestScore}`;
+      }
+    }
+  }
+
+  drawObstacles();
+  drawPlayer();
+  drawSteam();
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+// ====== game.js — CHUNK 6 / 6 ======
+
+// TEAM DATA
+const teams = {
+  W: ["5","8","9","18","19","22","28","29","30","34","A","B"],
+  R: ["1","4","6","7","11","13","20","21","27","31","40","A","B"],
+  G: ["10","12","14","23","24","26","35","36","37","39","A","B"],
+  B: ["2","3","15","16","17","25","32","33","38","41","A","B"],
+  Guest: ["0"]
+};
+
+let selectedTeam = null;
+let selectedNumber = null;
+
+const playerSelect = document.getElementById("playerSelect");
+const teamButtons = document.getElementById("teamButtons");
+const numberList = document.getElementById("numberList");
+const selectedPreview = document.getElementById("selectedPreview");
+
+document.getElementById("changePlayerBtn").onclick = () => {
+  playerSelect.classList.remove("hidden");
+};
+
+document.getElementById("cancelPlayer").onclick = () => {
+  playerSelect.classList.add("hidden");
+};
+
+document.getElementById("confirmPlayer").onclick = () => {
+  if (!selectedTeam || !selectedNumber) return;
+
+  playerId = selectedTeam + "-" + selectedNumber;
+  localStorage.setItem("playerId", playerId);
+
+  document.getElementById("playerIdLabel").textContent = "Player: " + playerId;
+
+  playerSelect.classList.add("hidden");
+};
+
+// Build team buttons
+for (let t of Object.keys(teams)) {
+  let btn = document.createElement("button");
+  btn.className = "teamBtn";
+  btn.textContent = t;
+
+  btn.onclick = () => {
+    selectedTeam = t;
+
+    [...teamButtons.children].forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+
+    buildNumberList();
+  };
+
+  teamButtons.appendChild(btn);
+}
+
+function buildNumberList() {
+  numberList.innerHTML = "";
+
+  for (let num of teams[selectedTeam]) {
+    let btn = document.createElement("button");
+    btn.textContent = num;
+
+    btn.onclick = () => {
+      selectedNumber = num;
+
+      [...numberList.children].forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+
+      selectedPreview.textContent = `Selected: ${selectedTeam}-${num}`;
+    };
+
+    numberList.appendChild(btn);
+  }
 }
